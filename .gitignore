@@ -1,0 +1,12 @@
+/.env
+/.env.*
+/storage/sessions/
+/storage/*.json
+/storage/*.log
+/storage/cache/
+/vendor/
+/node_modules/
+/.idea/
+/.vscode/
+*.log
+Thumbs.db
