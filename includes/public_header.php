@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $publicHeaderActive = $publicHeaderActive ?? '';
 $publicHeaderHome = $publicHeaderHome ?? false;
 $homeHref = $publicHeaderHome ? '#top' : 'index.php#top';
@@ -11,6 +11,7 @@ $navClass = static function (string $key) use ($publicHeaderActive): string {
 };
 ?>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap');
 #siteHeader{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition:background .4s ease,padding .4s ease,box-shadow .4s ease}
 #siteHeader.scrolled{background:rgba(23,51,43,.92);backdrop-filter:blur(10px);padding:12px 0;box-shadow:0 10px 30px -20px rgba(0,0,0,.4)}
 #siteHeader .nav.container{display:flex;align-items:center;justify-content:space-between;gap:32px;width:100%;max-width:none;padding-left:clamp(20px,3.2vw,60px);padding-right:clamp(20px,2.8vw,52px)}
@@ -89,6 +90,96 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}input
   .day{min-height:42px;padding:4px}
   .week span{font-size:.58rem}
 }
+#siteHeader{
+  background:#17372c !important;
+  padding:20px 0 !important;
+}
+#siteHeader.scrolled{
+  background:#17372c !important;
+  padding:14px 0 !important;
+}
+#siteHeader .nav.container{
+  padding-left:clamp(36px,3.2vw,60px) !important;
+  padding-right:clamp(20px,2.8vw,52px) !important;
+}
+#siteHeader .brand-name{
+  font-family:'Instrument Serif',Georgia,serif !important;
+  text-transform:uppercase !important;
+  letter-spacing:.24em !important;
+  font-size:clamp(1.45rem,1.8vw,1.78rem) !important;
+  font-weight:400 !important;
+  line-height:.9 !important;
+  color:#e9d2a0 !important;
+}
+#siteHeader .brand-subtitle{
+  margin-top:12px !important;
+  color:#e6d9bd !important;
+  font-size:.58rem !important;
+  font-weight:800 !important;
+  letter-spacing:.48em !important;
+  text-transform:uppercase !important;
+}
+#siteHeader .nav-links{
+  gap:28px !important;
+}
+#siteHeader .nav-links a{
+  color:#d9d2bd !important;
+  font-weight:800 !important;
+}
+#siteHeader .nav-links a:hover,
+#siteHeader .nav-links a.active{
+  color:#d9a050 !important;
+}
+#siteHeader .nav-links .nav-cta,
+#siteHeader .mobile-nav-cta{
+  background:#dda246 !important;
+  border-color:#dda246 !important;
+  border-radius:4px !important;
+  color:#20170d !important;
+  font-weight:900 !important;
+  padding:14px 22px !important;
+}
+@media(max-width:860px){
+  #siteHeader .brand-name{font-size:1.45rem !important}
+  #siteHeader .brand-subtitle{letter-spacing:.34em !important}
+}
+@media(max-width:760px){
+  #siteHeader .nav.container{padding-left:16px !important;padding-right:16px !important}
+  #siteHeader .brand-name{font-size:1.35rem !important}
+  #siteHeader .brand-subtitle{font-size:.48rem !important}
+  #siteHeader .nav-links .nav-cta{border-radius:4px !important}
+}
+
+#siteHeader{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  box-shadow:none !important;
+}
+#siteHeader.scrolled{
+  background:rgba(14,52,40,.94) !important;
+  backdrop-filter:blur(10px) !important;
+  box-shadow:0 10px 30px -20px rgba(0,0,0,.45) !important;
+}
+#siteHeader .brand-name{
+  color:#efd9a9 !important;
+}
+#siteHeader .brand-subtitle{
+  color:rgba(255,250,240,.82) !important;
+}
+#siteHeader .nav-links a{
+  color:#f0eadb !important;
+}
+#siteHeader .nav-links a:hover,
+#siteHeader .nav-links a.active{
+  color:#dda246 !important;
+}
+#siteHeader .nav-links .nav-cta,
+#siteHeader .mobile-nav-cta{
+  background:#dda246 !important;
+  border-color:#dda246 !important;
+  border-radius:4px !important;
+  color:#11190f !important;
+}
 </style>
 <header id="siteHeader">
   <div class="container nav">
@@ -110,3 +201,4 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}input
   </div>
 </header>
 <div class="nav-backdrop" id="navBackdrop" aria-hidden="true"></div>
+

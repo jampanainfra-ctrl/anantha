@@ -4,6 +4,7 @@
 #siteFooter .public-footer__inner{width:min(1180px,calc(100% - 36px));margin:auto}
 #siteFooter .public-footer__row{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:24px;align-items:start}
 #siteFooter .public-footer__brand{display:flex;align-items:center;gap:10px;color:#f1cf8f;font-weight:800}
+#siteFooter .public-footer__brand span{font-family:'Instrument Serif',Georgia,serif;font-size:1.65rem;font-weight:400;letter-spacing:0}
 #siteFooter .public-footer__brand img{width:44px;height:44px;border-radius:50%;object-fit:cover}
 #siteFooter .public-footer__col strong{display:block;color:#f1cf8f;margin-bottom:8px}
 #siteFooter .public-footer__col a,#siteFooter .public-footer__text{display:block;margin:8px 0 0;color:rgba(228,218,195,.76);line-height:1.6}
