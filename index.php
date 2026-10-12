@@ -1860,26 +1860,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 .page-home .hero{
   isolation:isolate !important;
   overflow:hidden !important;
-  background:
-    radial-gradient(ellipse at 48% 0%,rgba(228,163,77,.20) 0%,rgba(228,163,77,.07) 18%,transparent 36%),
-    linear-gradient(180deg,rgba(7,25,20,.08) 0%,rgba(7,25,20,.24) 56%,rgba(7,25,20,.50) 100%),
-    linear-gradient(90deg,rgba(8,30,24,.55) 0%,rgba(11,42,32,.30) 46%,rgba(8,30,24,.26) 100%),
-    url('assets/hero-nature-event-optimized.jpg') center/cover no-repeat !important;
+  margin-top:-34px !important;
+  min-height:100vh !important;
+  min-height:100svh !important;
+  padding-top:130px !important;
+  background:#10261f !important;
 }
 .page-home .hero::before{
   content:'' !important;
   display:block !important;
   position:absolute !important;
-  inset:0 !important;
+  inset:-22px !important;
   z-index:0 !important;
   pointer-events:none !important;
   background:
-    linear-gradient(105deg,transparent 39%,rgba(255,233,181,.20) 47%,rgba(255,233,181,.06) 53%,transparent 64%),
-    linear-gradient(73deg,transparent 45%,rgba(255,244,209,.16) 52%,rgba(255,244,209,.05) 59%,transparent 71%);
-  mix-blend-mode:screen !important;
-  opacity:.78 !important;
-  transform-origin:50% 0 !important;
-  animation:heroLightSweep 9s ease-in-out infinite alternate !important;
+    url('assets/hero-nature-event-optimized.jpg') center top/cover no-repeat !important;
+  opacity:1 !important;
+  transform:scale(1.035) translate3d(0,0,0) !important;
+  animation:heroBgMove 18s ease-in-out infinite alternate !important;
 }
 .page-home .hero::after{
   content:'' !important;
@@ -1889,17 +1887,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   z-index:0 !important;
   pointer-events:none !important;
   background:
-    radial-gradient(ellipse at 51% 0%,rgba(255,214,142,.20),transparent 28%),
-    linear-gradient(180deg,rgba(2,20,15,.04),rgba(2,20,15,.34) 100%) !important;
+    radial-gradient(ellipse at 48% 0%,rgba(255,214,142,.14),transparent 30%),
+    linear-gradient(180deg,rgba(5,18,14,0) 0%,rgba(5,18,14,.08) 54%,rgba(5,18,14,.26) 100%),
+    linear-gradient(90deg,rgba(5,18,14,.24) 0%,rgba(5,18,14,.08) 46%,rgba(5,18,14,.08) 100%) !important;
 }
-@keyframes heroLightSweep{
-  from{transform:translateX(-1.4%) skewX(-2deg);opacity:.58}
-  to{transform:translateX(1.4%) skewX(2deg);opacity:.86}
+@keyframes heroBgMove{
+  from{transform:scale(1.035) translate3d(-10px,-4px,0)}
+  to{transform:scale(1.075) translate3d(14px,8px,0)}
 }
 .page-home .hero-inner,
 .page-home #petals,
 .page-home #fireflies{
   position:relative !important;
+}
+.page-home .hero-inner{
+  z-index:3 !important;
+}
+.page-home #petals,
+.page-home #fireflies{
   z-index:2 !important;
 }
 .page-home #petals,
@@ -1913,11 +1918,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   display:block !important;
   position:absolute !important;
   z-index:1 !important;
-  width:4px !important;
-  height:4px !important;
+  width:2px !important;
+  height:2px !important;
   border-radius:50% !important;
   background:#f6e7a9 !important;
-  box-shadow:0 0 12px 3px rgba(246,231,169,.44) !important;
+  box-shadow:0 0 9px 2px rgba(246,231,169,.48) !important;
   opacity:0 !important;
   animation:heroSparkle 5.5s ease-in-out infinite !important;
 }
@@ -1925,11 +1930,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   display:block !important;
   position:absolute !important;
   z-index:1 !important;
-  width:10px !important;
-  height:10px !important;
-  background:rgba(238,223,178,.45) !important;
+  width:4px !important;
+  height:4px !important;
+  background:rgba(255,244,199,.84) !important;
   clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 56%,79% 91%,50% 70%,21% 91%,32% 56%,2% 35%,39% 35%) !important;
-  animation:heroStarDrift linear infinite !important;
+  box-shadow:0 0 10px 2px rgba(255,240,188,.38) !important;
+  animation:heroStarDrift 16s linear infinite, heroStarTwinkle 2.8s ease-in-out infinite alternate !important;
 }
 @keyframes heroSparkle{
   0%,100%{transform:translate3d(0,0,0) scale(.55);opacity:0}
@@ -1938,20 +1944,171 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   78%{opacity:.82}
 }
 @keyframes heroStarDrift{
-  0%{transform:translateY(-8vh) translateX(0) rotate(0deg);opacity:0}
-  12%{opacity:.42}
-  86%{opacity:.28}
-  100%{transform:translateY(108vh) translateX(46px) rotate(160deg);opacity:0}
+  0%{transform:translate3d(0,-10vh,0) rotate(0deg);opacity:0}
+  10%{opacity:.58}
+  82%{opacity:.46}
+  100%{transform:translate3d(var(--star-x,58px),var(--star-y,88vh),0) rotate(120deg);opacity:0}
+}
+@keyframes heroStarTwinkle{
+  from{filter:brightness(.82);opacity:.38}
+  to{filter:brightness(1.35);opacity:.78}
 }
 .page-home .hero .lede{
+  font-size:1.05rem !important;
   font-weight:500 !important;
   color:rgba(255,250,240,.90) !important;
   text-shadow:0 2px 16px rgba(0,0,0,.25) !important;
 }
 .page-home .hero-highlights{
+  font-size:.76rem !important;
   font-weight:600 !important;
   color:rgba(255,250,240,.88) !important;
   text-shadow:0 2px 14px rgba(0,0,0,.22) !important;
+}
+html,
+body{
+  margin:0 !important;
+  padding:0 !important;
+  background:#10261f url('assets/hero-nature-event-optimized.jpg') center top/cover no-repeat !important;
+}
+.page-home #siteHeader{
+  top:0 !important;
+  background:transparent !important;
+  backdrop-filter:none !important;
+  box-shadow:none !important;
+  padding-top:16px !important;
+  padding-bottom:14px !important;
+}
+.page-home #siteHeader.scrolled{
+  background:rgba(14,52,40,.88) !important;
+  backdrop-filter:blur(10px) !important;
+  box-shadow:0 10px 30px -20px rgba(0,0,0,.45) !important;
+}
+.page-home #siteHeader .brand-subtitle{
+  margin-top:5px !important;
+}
+.page-home .hero h1{
+  max-width:780px !important;
+  margin-top:24px !important;
+  font-size:clamp(3.85rem,5vw,5.85rem) !important;
+  line-height:.97 !important;
+}
+.page-home .hero .tagline{
+  margin-top:24px !important;
+  font-size:clamp(1.9rem,2.45vw,2.55rem) !important;
+}
+@media(max-width:860px){
+  .page-home .hero h1{font-size:clamp(3rem,9vw,4.55rem) !important}
+  .page-home .hero .tagline{font-size:clamp(1.75rem,6vw,2.35rem) !important}
+}
+@media(max-width:760px){
+  .page-home .hero{margin-top:-28px !important;padding-top:140px !important}
+  .page-home .hero h1{font-size:clamp(2.45rem,10.5vw,3.65rem) !important}
+  .page-home .hero .tagline{font-size:1.65rem !important}
+}
+@media(max-width:760px){
+  .page-home .hero{
+    min-height:100svh !important;
+    align-items:flex-start !important;
+    padding:126px 0 44px !important;
+  }
+  .page-home .hero-inner{
+    width:min(100% - 28px,520px) !important;
+  }
+  .page-home .hero-location{
+    font-size:.62rem !important;
+    line-height:1.55 !important;
+    letter-spacing:.22em !important;
+  }
+  .page-home .hero h1{
+    max-width:100% !important;
+    margin-top:18px !important;
+    font-size:clamp(2.2rem,11vw,3.25rem) !important;
+    line-height:1.02 !important;
+  }
+  .page-home .hero .tagline{
+    margin-top:16px !important;
+    font-size:clamp(1.35rem,7vw,1.85rem) !important;
+    line-height:1.1 !important;
+  }
+  .page-home .hero .lede{
+    margin-top:14px !important;
+    max-width:100% !important;
+    font-size:.93rem !important;
+    line-height:1.55 !important;
+  }
+  .page-home .hero-actions{
+    margin-top:22px !important;
+    gap:10px !important;
+  }
+  .page-home .hero-actions .btn{
+    width:100% !important;
+    min-width:0 !important;
+    min-height:48px !important;
+    padding:13px 16px !important;
+    font-size:.78rem !important;
+    letter-spacing:.14em !important;
+  }
+  .page-home .hero-highlights{
+    margin-top:20px !important;
+    font-size:.62rem !important;
+    line-height:1.6 !important;
+    letter-spacing:.07em !important;
+  }
+  .page-home .petal{
+    opacity:.62 !important;
+  }
+}
+@media(max-width:420px){
+  .page-home .hero{
+    padding-top:118px !important;
+    padding-bottom:36px !important;
+  }
+  .page-home .hero-inner{
+    width:min(100% - 24px,390px) !important;
+  }
+  .page-home .hero-location{
+    font-size:.56rem !important;
+    letter-spacing:.18em !important;
+  }
+  .page-home .hero h1{
+    font-size:clamp(2rem,11.5vw,2.85rem) !important;
+  }
+  .page-home .hero .tagline{
+    font-size:1.32rem !important;
+  }
+  .page-home .hero .lede{
+    font-size:.88rem !important;
+  }
+  .page-home .hero-highlights{
+    font-size:.58rem !important;
+  }
+}
+@media(max-width:620px){
+  .page-home .contact-stack{
+    right:12px !important;
+    bottom:12px !important;
+    gap:8px !important;
+    width:46px !important;
+  }
+  .page-home .contact-fab,
+  .page-home .chatbot-toggle,
+  .page-home .site-chatbot{
+    width:46px !important;
+    height:46px !important;
+  }
+  .page-home .contact-fab svg,
+  .page-home .chatbot-toggle svg{
+    width:22px !important;
+    height:22px !important;
+  }
+  .page-home .chatbot-panel{
+    right:12px !important;
+    bottom:164px !important;
+    width:calc(100vw - 24px) !important;
+    max-width:calc(100vw - 24px) !important;
+    max-height:calc(100svh - 184px) !important;
+  }
 }
 </style>
 </head>
@@ -2276,28 +2433,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 	  }, { threshold: 0.15 });
 	  revealEls.forEach(el => io.observe(el));
 
-	  // drifting petals in hero
+		  // tiny moving stars in hero
   const petalHost = document.getElementById('petals');
-  const petalCount = window.innerWidth < 700 ? 6 : 12;
+	  const petalCount = window.innerWidth < 700 ? 24 : 58;
   for (let i = 0; i < petalCount; i++) {
     const p = document.createElement('div');
     p.className = 'petal';
     p.style.left = Math.random() * 100 + '%';
-    p.style.animationDuration = (14 + Math.random() * 10) + 's';
-    p.style.animationDelay = (Math.random() * 12) + 's';
-    p.style.width = p.style.height = (8 + Math.random() * 10) + 'px';
+	    p.style.top = (-14 + Math.random() * 62) + '%';
+	    const starDuration = 10 + Math.random() * 12;
+	    const starDelay = Math.random() * 8;
+	    p.style.setProperty('--star-x', (28 + Math.random() * 86) + 'px');
+	    p.style.setProperty('--star-y', (54 + Math.random() * 50) + 'vh');
+	    p.style.animation = `heroStarDrift ${starDuration}s linear ${starDelay}s infinite, heroStarTwinkle ${2.2 + Math.random() * 2.2}s ease-in-out ${Math.random() * 2}s infinite alternate`;
+	    p.style.width = p.style.height = (2 + Math.random() * 3) + 'px';
     petalHost.appendChild(p);
   }
 
-  // fireflies for a soft nature-at-night feel
+	  // soft pin lights over the lawn
   const fireflyHost = document.getElementById('fireflies');
-  const fireflyCount = window.innerWidth < 700 ? 10 : 22;
+	  const fireflyCount = window.innerWidth < 700 ? 18 : 38;
   for (let i = 0; i < fireflyCount; i++) {
     const f = document.createElement('span');
     f.className = 'firefly';
     f.style.left = (8 + Math.random() * 84) + '%';
-    f.style.top = (32 + Math.random() * 48) + '%';
-    f.style.animationDuration = (4 + Math.random() * 4) + 's';
+	    f.style.top = (12 + Math.random() * 70) + '%';
+	    f.style.animationDuration = (6 + Math.random() * 6) + 's';
     f.style.animationDelay = (Math.random() * 5) + 's';
     fireflyHost.appendChild(f);
   }

@@ -162,9 +162,14 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}input
 }
 #siteHeader .brand-name{
   color:#efd9a9 !important;
+  font-size:clamp(1.28rem,1.55vw,1.55rem) !important;
+  line-height:.88 !important;
 }
 #siteHeader .brand-subtitle{
   color:rgba(255,250,240,.82) !important;
+  margin-top:6px !important;
+  font-size:.52rem !important;
+  letter-spacing:.42em !important;
 }
 #siteHeader .nav-links a{
   color:#f0eadb !important;
@@ -179,6 +184,51 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}input
   border-color:#dda246 !important;
   border-radius:4px !important;
   color:#11190f !important;
+}
+@media(max-width:760px){
+  #siteHeader .nav.container{
+    gap:8px !important;
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+  #siteHeader .brand-name{
+    font-size:clamp(.98rem,5vw,1.18rem) !important;
+    letter-spacing:.2em !important;
+  }
+  #siteHeader .brand-subtitle{
+    margin-top:4px !important;
+    font-size:.43rem !important;
+    letter-spacing:.32em !important;
+  }
+  #siteHeader .mobile-nav-cta{
+    display:inline-flex !important;
+    min-height:38px !important;
+    max-width:132px !important;
+    padding:8px 10px !important;
+    font-size:.68rem !important;
+    line-height:1.15 !important;
+    white-space:normal !important;
+  }
+  #siteHeader .menu-toggle{
+    width:38px !important;
+    height:38px !important;
+    flex:0 0 38px !important;
+  }
+}
+@media(max-width:380px){
+  #siteHeader .brand-name{
+    font-size:.92rem !important;
+    letter-spacing:.16em !important;
+  }
+  #siteHeader .brand-subtitle{
+    font-size:.38rem !important;
+    letter-spacing:.28em !important;
+  }
+  #siteHeader .mobile-nav-cta{
+    max-width:108px !important;
+    padding:7px 8px !important;
+    font-size:.62rem !important;
+  }
 }
 </style>
 <header id="siteHeader">
