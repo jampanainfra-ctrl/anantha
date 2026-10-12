@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 <link rel="preload" as="image" href="assets/hero-nature-event-optimized.jpg" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --forest-deep:#17332B;
@@ -694,11 +694,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 				    grid-column:span 2;
 				    min-width:0;
 				    min-height:138px;
+					    font-family:'Inter', sans-serif;
 			    display:grid;
 			    grid-template-rows:auto auto;
 			    align-content:center;
 			    justify-items:center;
-			    gap:10px;
+				    gap:12px;
 			    padding:24px 18px;
 			    text-align:center;
 		    background:linear-gradient(145deg, rgba(255,255,255,0.88), rgba(246,242,233,0.72));
@@ -725,8 +726,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 		  .pillar:nth-child(5){ border-top-color:#7b8f38; }
 		  .pillar:nth-child(4){ grid-column:2 / span 2; }
 		  .pillar:nth-child(5){ grid-column:4 / span 2; }
-					  .pillar strong{ display:block; font-family:'Inter', sans-serif; font-size:clamp(1.58rem,2.1vw,2rem); line-height:1.08; color:var(--forest); white-space:normal; }
-					  .pillar span{ display:block; margin:0; font-size:clamp(0.94rem,1.1vw,1.04rem); line-height:1.35; font-weight:800; color:#3d5048; overflow-wrap:normal; word-break:normal; hyphens:none; }
+					  .pillar strong{ display:block; font-family:'Instrument Serif', Georgia, serif; font-size:clamp(1.78rem,2.35vw,2.28rem); font-weight:400; line-height:1; letter-spacing:0; color:var(--forest); white-space:normal; }
+					  .pillar span{ display:block; margin:0; font-family:'Inter', sans-serif; font-size:clamp(0.94rem,1.1vw,1.04rem); line-height:1.35; font-weight:700; color:#3d5048; overflow-wrap:normal; word-break:normal; hyphens:none; }
 
 	  @media (max-width: 980px){
 	    .about-grid{ grid-template-columns:1fr; gap:36px; }
@@ -1500,39 +1501,541 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 	  :focus-visible{ outline:2px solid var(--sunset); outline-offset:2px; }
 .nav-links a:hover,.nav-links a.active{color:var(--sunset);font-weight:800}
 .nav-links a.active::after{width:100%}
+
+/* Requested first-screen hero treatment for the anantha copy. */
+.page-home .hero{
+  min-height:calc(100vh - 102px) !important;
+  min-height:calc(100svh - 102px) !important;
+  align-items:center !important;
+  padding:92px 0 78px !important;
+  background:
+    linear-gradient(90deg,rgba(24,47,39,.88),rgba(83,99,88,.72) 47%,rgba(205,207,199,.84)),
+    url('assets/hero-nature-event-optimized.jpg') center/cover no-repeat !important;
+}
+.page-home .hero::before,
+.page-home .hero::after,
+.page-home #petals,
+.page-home #fireflies,
+.page-home .scroll-cue{
+  display:none !important;
+}
+.page-home .hero-inner{
+  width:min(1295px,calc(100% - 96px)) !important;
+  max-width:1295px !important;
+  margin-inline:auto !important;
+}
+.page-home .hero-location{
+  color:#efd9a9 !important;
+  font-size:.78rem !important;
+  font-weight:900 !important;
+  letter-spacing:.32em !important;
+  text-transform:uppercase !important;
+}
+.page-home .hero h1,
+.page-home .hero h1 em,
+.page-home .hero .tagline{
+  font-family:'Instrument Serif',Georgia,serif !important;
+  font-weight:400 !important;
+  letter-spacing:0 !important;
+}
+.page-home .hero h1{
+  max-width:900px !important;
+  margin:32px 0 0 !important;
+  color:#fffaf0 !important;
+  font-size:clamp(4.6rem,5.9vw,7.1rem) !important;
+  line-height:.98 !important;
+  text-shadow:0 28px 50px rgba(21,42,34,.35) !important;
+}
+.page-home .hero h1 em{
+  color:#fffaf0 !important;
+  font-style:normal !important;
+}
+.page-home .hero .tagline{
+  margin-top:34px !important;
+  color:#e0d2b3 !important;
+  font-size:clamp(2.35rem,3.2vw,3.25rem) !important;
+  line-height:1.05 !important;
+}
+.page-home .hero .lede{
+  margin-top:22px !important;
+  max-width:820px !important;
+  color:rgba(255,250,240,.92) !important;
+  font-size:1.2rem !important;
+  font-weight:800 !important;
+  line-height:1.65 !important;
+}
+.page-home .hero-actions{
+  margin-top:34px !important;
+  gap:18px !important;
+}
+.page-home .hero-actions .btn{
+  min-width:282px !important;
+  border-radius:4px !important;
+  padding:16px 28px !important;
+  font-size:.95rem !important;
+  font-weight:800 !important;
+  letter-spacing:.24em !important;
+  text-transform:uppercase !important;
+}
+.page-home .hero .btn--gold{
+  background:#dda246 !important;
+  color:#10251e !important;
+}
+.page-home .hero .btn--outline{
+  border-color:rgba(255,255,255,.36) !important;
+  color:#fff !important;
+}
+.page-home .hero-highlights{
+  margin-top:34px !important;
+  color:#fffaf0 !important;
+  font-size:.84rem !important;
+  font-weight:900 !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+}
+@media(max-width:860px){
+  .page-home .hero-inner{width:calc(100% - 40px) !important}
+  .page-home .hero h1{font-size:clamp(3.4rem,10vw,5.2rem) !important}
+  .page-home .hero .tagline{font-size:clamp(2rem,7vw,2.8rem) !important}
+}
+@media(max-width:760px){
+  .page-home .hero{min-height:0 !important;padding:128px 0 56px !important}
+  .page-home .hero h1{font-size:clamp(2.85rem,12vw,4.2rem) !important}
+  .page-home .hero .lede{font-size:1.02rem !important}
+  .page-home .hero-actions{flex-direction:column !important}
+  .page-home .hero-actions .btn{width:100% !important;min-width:0 !important;letter-spacing:.16em !important}
+}
+@media(max-width:480px){
+  .page-home .hero h1{font-size:clamp(2.45rem,13vw,3.4rem) !important}
+  .page-home .hero .tagline{font-size:1.85rem !important}
+}
+.home-skip-link{position:fixed;top:10px;left:16px;z-index:1000;padding:12px 18px;background:#fff;color:#17332b;transform:translateY(-160%)}
+.home-skip-link:focus{transform:translateY(0)}
+#main-content{scroll-margin-top:96px}
+.home-planning{padding:56px 0;background:#fffaf0;color:#17332b}
+.home-planning h2{font-size:clamp(1.8rem,4vw,2.5rem);margin:0 0 24px}
+.home-planning-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.home-planning-grid article{padding:24px;border:1px solid #c7b896;border-radius:12px;background:rgba(255,255,255,.45)}
+.home-planning h3{font-size:1.15rem;margin:0 0 12px}
+.home-planning p{color:#4a5850}
+.home-planning a{color:#20483f;text-decoration:underline;text-underline-offset:4px;font-weight:700}
+.home-planning-grid a{display:inline-block;padding:10px 0;min-height:44px}
+.venue-inclusions{padding:72px 0;background:#eef1e6;color:#17332b}
+.inclusion-layout{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1fr);gap:clamp(32px,7vw,92px);align-items:start}
+.inclusion-layout h2{font-size:clamp(2rem,4vw,3.25rem);line-height:1.05;margin:10px 0 0}
+.inclusion-layout p{color:#4a5850;line-height:1.75}
+.inclusion-layout ul{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px;color:#263a32}
+.inclusion-layout li::before{content:'\2713';color:#416348;margin-right:10px;font-weight:900}
+.cost-note{display:flex;gap:28px;flex-wrap:wrap;border-top:1px solid rgba(23,51,43,.18);margin-top:28px;padding-top:22px;color:#4a5850}
+.cost-note strong{display:block;color:#17332b;font-size:1rem}
+.small-note{margin-top:18px;font-size:.88rem}
+.small-note a{color:#20483f;text-decoration:underline;text-underline-offset:4px;font-weight:700}
+.gallery-head .btn{margin-top:16px}
+#main-content a:focus-visible{outline:3px solid #b97f3a;outline-offset:4px}
+@media(max-width:820px){
+  .home-planning-grid,
+  .inclusion-layout,
+  .inclusion-layout ul{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .home-planning,
+  .venue-inclusions{padding:52px 0}
+  .home-planning-grid{gap:14px}
+}
+
+/* Match the supplied inclusions-section typography reference. */
+.venue-inclusions{
+  padding:76px 0 78px !important;
+  background:#e8ecdf !important;
+}
+.venue-inclusions .container{
+  width:min(1300px,calc(100% - 96px)) !important;
+}
+.venue-inclusions .eyebrow{
+  color:#0f473f !important;
+  font-size:.74rem !important;
+  font-weight:800 !important;
+  letter-spacing:.34em !important;
+}
+.venue-inclusions .inclusion-layout{
+  grid-template-columns:minmax(340px,.95fr) minmax(520px,1.08fr) !important;
+  gap:clamp(72px,10vw,150px) !important;
+  align-items:start !important;
+}
+.venue-inclusions h2{
+  margin-top:26px !important;
+  color:#163f35 !important;
+  font-family:'Instrument Serif',Georgia,serif !important;
+  font-size:clamp(4.4rem,5.6vw,6.5rem) !important;
+  font-weight:400 !important;
+  line-height:.96 !important;
+  letter-spacing:-.04em !important;
+}
+.venue-inclusions h2 em{
+  display:block !important;
+  color:#163f35 !important;
+  font-style:italic !important;
+  font-weight:400 !important;
+}
+.venue-inclusions .inclusion-layout > div{
+  padding-top:6px !important;
+}
+.venue-inclusions .inclusion-layout p{
+  max-width:660px !important;
+  color:#475c54 !important;
+  font-size:1.08rem !important;
+  line-height:1.55 !important;
+}
+.venue-inclusions ul{
+  margin-top:24px !important;
+  grid-template-columns:repeat(2,minmax(220px,1fr)) !important;
+  gap:22px 52px !important;
+  color:#002f27 !important;
+  font-size:.98rem !important;
+  line-height:1.45 !important;
+}
+.venue-inclusions li::before{
+  color:#163f35 !important;
+  margin-right:12px !important;
+  font-weight:400 !important;
+}
+.venue-inclusions .cost-note{
+  margin-top:34px !important;
+  padding-top:28px !important;
+  border-top:1px solid rgba(22,63,53,.18) !important;
+  gap:clamp(56px,8vw,96px) !important;
+  color:#002f27 !important;
+}
+.venue-inclusions .cost-note span{
+  font-size:.82rem !important;
+  line-height:1.35 !important;
+}
+.venue-inclusions .cost-note strong{
+  margin-top:3px !important;
+  color:#002f27 !important;
+  font-size:1.13rem !important;
+  font-weight:800 !important;
+}
+.venue-inclusions .small-note{
+  margin-top:8px !important;
+  color:#475c54 !important;
+  font-size:.82rem !important;
+}
+.venue-inclusions .small-note a{
+  color:#002f27 !important;
+  font-weight:500 !important;
+}
+@media(max-width:900px){
+  .venue-inclusions .container{width:min(100% - 40px,1180px) !important}
+  .venue-inclusions .inclusion-layout{grid-template-columns:1fr !important;gap:34px !important}
+  .venue-inclusions h2{font-size:clamp(3.6rem,12vw,5.4rem) !important}
+}
+@media(max-width:620px){
+  .venue-inclusions ul{grid-template-columns:1fr !important;gap:16px !important}
+  .venue-inclusions .cost-note{gap:24px !important}
+}
+
+/* Match the supplied planning-section typography reference. */
+.home-planning{
+  padding:86px 0 68px !important;
+  background:#f5f2ea !important;
+}
+.home-planning .container{
+  width:min(1300px,calc(100% - 96px)) !important;
+}
+.home-planning .eyebrow{
+  color:#0f473f !important;
+  font-size:.74rem !important;
+  font-weight:800 !important;
+  letter-spacing:.34em !important;
+}
+.home-planning h2{
+  max-width:620px !important;
+  margin:22px 0 52px !important;
+  color:#163f35 !important;
+  font-family:'Instrument Serif',Georgia,serif !important;
+  font-size:clamp(4.4rem,5.45vw,6.3rem) !important;
+  font-weight:400 !important;
+  line-height:.98 !important;
+  letter-spacing:-.045em !important;
+}
+.home-planning h2 em{
+  color:#163f35 !important;
+  font-style:italic !important;
+  font-weight:400 !important;
+}
+.home-planning-grid{
+  gap:0 !important;
+  border-top:1px solid rgba(22,63,53,.18) !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+}
+.home-planning-grid article{
+  min-height:240px !important;
+  padding:38px 36px 26px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+}
+.home-planning-grid article:first-child{
+  padding-left:0 !important;
+}
+.home-planning-grid article + article{
+  border-left:1px solid rgba(22,63,53,.18) !important;
+}
+.home-planning h3{
+  margin:0 0 14px !important;
+  color:#002f27 !important;
+  font-family:'Inter',Arial,sans-serif !important;
+  font-size:1.12rem !important;
+  font-weight:800 !important;
+  letter-spacing:-.02em !important;
+}
+.home-planning-grid p{
+  max-width:330px !important;
+  color:#475c54 !important;
+  font-size:.98rem !important;
+  line-height:1.55 !important;
+}
+.home-planning-grid a{
+  margin-top:14px !important;
+  padding:0 !important;
+  min-height:0 !important;
+  color:#0b3f35 !important;
+  font-size:1rem !important;
+  font-weight:900 !important;
+  text-decoration:underline !important;
+  text-underline-offset:4px !important;
+}
+.home-planning > .container > p:last-child{
+  margin-top:36px !important;
+  color:#475c54 !important;
+  font-size:.86rem !important;
+}
+.home-planning > .container > p:last-child a{
+  color:#0b3f35 !important;
+  font-weight:900 !important;
+  text-decoration:underline !important;
+  text-underline-offset:4px !important;
+}
+@media(max-width:900px){
+  .home-planning .container{width:min(100% - 40px,1180px) !important}
+  .home-planning h2{font-size:clamp(3.6rem,12vw,5.4rem) !important}
+  .home-planning-grid{grid-template-columns:1fr !important}
+  .home-planning-grid article,
+  .home-planning-grid article:first-child{padding:26px 0 !important}
+  .home-planning-grid article + article{border-left:0 !important;border-top:1px solid rgba(22,63,53,.18) !important}
+}
+@media(max-width:620px){
+  .home-planning{padding:64px 0 52px !important}
+  .home-planning h2{font-size:clamp(3.1rem,14vw,4.2rem) !important}
+}
+
+/* Final hero/header polish: reference overlay, light rays and softer text weights. */
+#siteHeader{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  box-shadow:none !important;
+}
+#siteHeader.scrolled{
+  background:rgba(14,52,40,.94) !important;
+  backdrop-filter:blur(10px) !important;
+  box-shadow:0 10px 30px -20px rgba(0,0,0,.45) !important;
+}
+#siteHeader .brand-name{
+  color:#efd9a9 !important;
+}
+#siteHeader .nav-links a{
+  color:#f0eadb !important;
+}
+#siteHeader .nav-links a:hover,
+#siteHeader .nav-links a.active{
+  color:#dda246 !important;
+}
+#siteHeader .nav-links .nav-cta,
+#siteHeader .mobile-nav-cta{
+  background:#dda246 !important;
+  border-color:#dda246 !important;
+  border-radius:4px !important;
+}
+.page-home .hero{
+  isolation:isolate !important;
+  overflow:hidden !important;
+  background:
+    radial-gradient(ellipse at 48% 0%,rgba(228,163,77,.20) 0%,rgba(228,163,77,.07) 18%,transparent 36%),
+    linear-gradient(180deg,rgba(7,25,20,.08) 0%,rgba(7,25,20,.24) 56%,rgba(7,25,20,.50) 100%),
+    linear-gradient(90deg,rgba(8,30,24,.55) 0%,rgba(11,42,32,.30) 46%,rgba(8,30,24,.26) 100%),
+    url('assets/hero-nature-event-optimized.jpg') center/cover no-repeat !important;
+}
+.page-home .hero::before{
+  content:'' !important;
+  display:block !important;
+  position:absolute !important;
+  inset:0 !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+  background:
+    linear-gradient(105deg,transparent 39%,rgba(255,233,181,.20) 47%,rgba(255,233,181,.06) 53%,transparent 64%),
+    linear-gradient(73deg,transparent 45%,rgba(255,244,209,.16) 52%,rgba(255,244,209,.05) 59%,transparent 71%);
+  mix-blend-mode:screen !important;
+  opacity:.78 !important;
+  transform-origin:50% 0 !important;
+  animation:heroLightSweep 9s ease-in-out infinite alternate !important;
+}
+.page-home .hero::after{
+  content:'' !important;
+  display:block !important;
+  position:absolute !important;
+  inset:0 !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+  background:
+    radial-gradient(ellipse at 51% 0%,rgba(255,214,142,.20),transparent 28%),
+    linear-gradient(180deg,rgba(2,20,15,.04),rgba(2,20,15,.34) 100%) !important;
+}
+@keyframes heroLightSweep{
+  from{transform:translateX(-1.4%) skewX(-2deg);opacity:.58}
+  to{transform:translateX(1.4%) skewX(2deg);opacity:.86}
+}
+.page-home .hero-inner,
+.page-home #petals,
+.page-home #fireflies{
+  position:relative !important;
+  z-index:2 !important;
+}
+.page-home #petals,
+.page-home #fireflies{
+  display:block !important;
+  position:absolute !important;
+  inset:0 !important;
+  pointer-events:none !important;
+}
+.page-home .firefly{
+  display:block !important;
+  position:absolute !important;
+  z-index:1 !important;
+  width:4px !important;
+  height:4px !important;
+  border-radius:50% !important;
+  background:#f6e7a9 !important;
+  box-shadow:0 0 12px 3px rgba(246,231,169,.44) !important;
+  opacity:0 !important;
+  animation:heroSparkle 5.5s ease-in-out infinite !important;
+}
+.page-home .petal{
+  display:block !important;
+  position:absolute !important;
+  z-index:1 !important;
+  width:10px !important;
+  height:10px !important;
+  background:rgba(238,223,178,.45) !important;
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 56%,79% 91%,50% 70%,21% 91%,32% 56%,2% 35%,39% 35%) !important;
+  animation:heroStarDrift linear infinite !important;
+}
+@keyframes heroSparkle{
+  0%,100%{transform:translate3d(0,0,0) scale(.55);opacity:0}
+  20%{opacity:.76}
+  50%{transform:translate3d(20px,-36px,0) scale(1);opacity:.48}
+  78%{opacity:.82}
+}
+@keyframes heroStarDrift{
+  0%{transform:translateY(-8vh) translateX(0) rotate(0deg);opacity:0}
+  12%{opacity:.42}
+  86%{opacity:.28}
+  100%{transform:translateY(108vh) translateX(46px) rotate(160deg);opacity:0}
+}
+.page-home .hero .lede{
+  font-weight:500 !important;
+  color:rgba(255,250,240,.90) !important;
+  text-shadow:0 2px 16px rgba(0,0,0,.25) !important;
+}
+.page-home .hero-highlights{
+  font-weight:600 !important;
+  color:rgba(255,250,240,.88) !important;
+  text-shadow:0 2px 14px rgba(0,0,0,.22) !important;
+}
 </style>
 </head>
-<body>
+<body class="page-home">
 
 <?php $publicHeaderActive = 'home'; $publicHeaderHome = true; include __DIR__ . '/includes/public_header.php'; ?>
 
+<a class="home-skip-link" href="#main-content">Skip to content</a>
+<main id="main-content" tabindex="-1">
 <section class="hero" id="top">
 	  <div class="hero-inner">
 	    <p class="hero-location">Kommadi &middot; Madhurawada &middot; Visakhapatnam</p>
-	    <h1>Private Event Lawn in Madhurawada, Visakhapatnam</h1>
+	    <h1>Private Event Lawn<br><em>in Madhurawada,<br>Visakhapatnam</em></h1>
 	    <p class="tagline">Celebrate beautifully at Anantha.</p>
 	    <p class="lede">An exclusive outdoor venue in Kommadi for birthdays, engagements, Haldi, Sangeet, receptions, weddings and family celebrations &mdash; up to 300 guests.</p>
 	    <div class="hero-actions">
 		      <a href="availability.php" class="btn btn--gold">Check Your Date</a>
 		      <a href="<?php echo h($heroWhatsappLink); ?>" class="btn btn--outline" target="_blank" rel="noopener">WhatsApp Us</a>
 	    </div>
-	    <p class="hero-highlights">Private Venue &bull; One Event Per Day &bull; 2 AC Rooms &bull; Mini Hall &bull; Up to 300 Guests</p>
+	    <p class="hero-highlights">PRIVATE VENUE &bull; ONE EVENT PER DAY &bull; 2 AC ROOMS &bull; MINI HALL &bull; UP TO 300 GUESTS</p>
 	  </div>
   <div class="scroll-cue" aria-hidden="true"></div>
   <div id="petals"></div>
   <div id="fireflies"></div>
 </section>
 
+<section class="home-planning" aria-labelledby="planning-title">
+  <div class="container">
+    <p class="eyebrow">A beautiful day starts here</p>
+    <h2 id="planning-title">Less planning. <em>More celebrating.</em></h2>
+    <div class="home-planning-grid">
+      <article>
+        <h3>1. Check your date</h3>
+        <p>Choose your event date and guest count using our availability form.</p>
+        <a href="availability.php">Check availability &rarr;</a>
+      </article>
+      <article>
+        <h3>2. Request a quotation</h3>
+        <p>Share your occasion and requirements. The team will guide you through verification and your quotation.</p>
+        <a href="<?php echo h($heroWhatsappLink); ?>" target="_blank" rel="noopener">Ask on WhatsApp &rarr;</a>
+      </article>
+      <article>
+        <h3>3. Arrange a visit</h3>
+        <p>See the lawn, mini hall and rooms, and discuss your event layout with the team.</p>
+        <a href="#visit">Find us and arrange a visit &rarr;</a>
+      </article>
+    </div>
+    <p>A date enquiry does not confirm a booking. Review the <a href="terms.php">booking terms</a> and confirm the next steps with our team.</p>
+  </div>
+</section>
+
+<section class="venue-inclusions">
+  <div class="container">
+    <p class="eyebrow">Your day, thoughtfully considered</p>
+    <div class="inclusion-layout">
+      <h2>One venue.<br><em>All the essentials.</em></h2>
+      <div>
+        <p>Bring your people and your ideas. Our lawn, mini hall and two AC rooms give you the space to make the day your own.</p>
+        <ul>
+          <li>Private lawn for your celebration</li>
+          <li>Mini hall for event support</li>
+          <li>Two air-conditioned rooms</li>
+          <li>Washrooms and hand-wash points</li>
+        </ul>
+        <div class="cost-note">
+          <span>Cleaning <strong>&#8377;2,000 / event</strong></span>
+          <span>Refundable deposit <strong>&#8377;10,000</strong></span>
+        </div>
+        <p class="small-note">Package quotation shared by the team. <a href="rules.php">Read the venue rules &rarr;</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section-light about" id="about">
   <div class="container about-grid reveal">
     <div class="about-copy">
-		      <h2>A beautiful space for meaningful celebrations</h2>
+			      <h2>Space to gather.<br><em>Room to make memories.</em></h2>
 		      <div class="about-pillars">
 		        <div class="pillar is-highlight"><strong>1</strong><span>Private event per day</span></div>
 		        <div class="pillar"><strong>2</strong><span>AC rooms</span></div>
 		        <div class="pillar"><strong>1</strong><span>Mini hall</span></div>
 		        <div class="pillar"><strong>Up to 300</strong><span>Guests</span></div>
-	        <div class="pillar"><strong>3,000 sq. ft.</strong><span>Spacious event lawn</span></div>
+		        <div class="pillar"><strong>3,000 sq. ft.</strong><span>Spacious event lawn</span></div>
 	      </div>
 	    </div>
 	  </div>
@@ -1543,9 +2046,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 	    <div class="gallery-head">
 	      <div>
 	        <p class="eyebrow">The grounds</p>
-		        <h2>Venue gallery</h2>
+			        <h2>A setting for <em>your story.</em></h2>
 		      </div>
-		      <p>Open lawns, celebration setups, and rooms close by for the people who matter most.</p>
+			      <div><p>Open lawns, celebration setups, and rooms close by for the people who matter most.</p><a class="btn btn--gold" href="gallery.php">Explore the full gallery</a></div>
 	    </div>
 
     <div class="venue-gallery">
@@ -1578,7 +2081,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
     <div class="occasion-head">
       <div>
 	        <p class="eyebrow">Ideas</p>
-        <h2>Bring your celebration to Anantha</h2>
+	        <h2>Every occasion.<br><em>Beautifully yours.</em></h2>
       </div>
 	      <p>Choose your idea and make the space your own.</p>
     </div>
@@ -1619,7 +2122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   <div class="container reveal">
     <div class="review-head">
       <div>
-        <h2>Stories that stayed after the lights went down</h2>
+	        <h2>Memories made. <em>Kind words shared.</em></h2>
       </div>
       <p>Small moments, warm gatherings and celebrations remembered long after the day.</p>
 	      <?php if ($googleReviewLink !== ''): ?><a class="btn btn--gold" href="<?php echo h($googleReviewLink); ?>" target="_blank" rel="noopener">View Google Reviews</a><?php endif; ?>
@@ -1694,7 +2197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 	      </article>
 	      <article class="faq-item">
 	        <h3>What are the event timings?</h3>
-	        <p>Timings are confirmed during enquiry based on the event type. Mini hall use closes by 10:00 PM, and loud sound or DJ timings must follow local permission rules.</p>
+		        <p>Please see our <a href="rules.php">current check-in, checkout and venue rules</a>. Mini hall use closes by 10:00 PM, and loud sound or DJ timings must follow local permission rules.</p>
 	      </article>
 	      <article class="faq-item">
 	        <h3>Can we check date availability?</h3>
@@ -1709,14 +2212,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 	        <p>The venue supports up to 300 guests. The enquiry form asks for expected guest count so the team can suggest the right package and layout.</p>
 	      </article>
 	      <article class="faq-item">
-	        <h3>What should we share for enquiry?</h3>
-	        <p>Please share your event date, occasion, guest count, timing needs and decor or food-counter requirements. The team will confirm date availability and next steps.</p>
+		        <h3>How do we get a quotation?</h3>
+		        <p>Share your event date, occasion, guest count and setup needs through <a href="availability.php">Check Availability</a>. The team will guide you through verification and your quotation. For help before completing the form, <a href="<?php echo h($heroWhatsappLink); ?>" target="_blank" rel="noopener">ask us on WhatsApp</a>.</p>
 	      </article>
 	    </div>
 	  </div>
 	</section>
 	
-	<?php include __DIR__ . '/includes/public_footer.php'; ?>
+		</main>
+		<?php include __DIR__ . '/includes/public_footer.php'; ?>
 
 <?php include __DIR__ . '/includes/chatbot.php'; ?>
 
