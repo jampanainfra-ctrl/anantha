@@ -13,38 +13,35 @@ ensure_gallery_category_schema();
 ensure_blog_images_schema();
 ensure_event_inspection_schema();
 ensure_rate_card_schema();
-
-function sync_booking_payment(int $bookingId): void
-{
-    $stmt = db()->prepare("SELECT proposal_amount FROM event_bookings WHERE id=?");
-    $stmt->execute([$bookingId]);
-    $proposalAmount = (float) $stmt->fetchColumn();
-
-    $stmt = db()->prepare("SELECT COALESCE(SUM(amount),0) FROM payments WHERE booking_id=? AND verification_status='verified'");
-    $stmt->execute([$bookingId]);
-    $verifiedTotal = (float) $stmt->fetchColumn();
-
-    $status = 'pending';
-    if ($verifiedTotal > 0 && ($proposalAmount <= 0 || $verifiedTotal < $proposalAmount)) {
-        $status = 'advance_paid';
-    }
-    if ($proposalAmount > 0 && $verifiedTotal >= $proposalAmount) {
-        $status = 'paid';
-    }
-
-    db()->prepare("UPDATE event_bookings SET payment_status=? WHERE id=?")->execute([$status, $bookingId]);
-}
+ensure_referral_schema();
+ensure_pricing_history_schema();
 
 $action = $_POST['action'] ?? '';
 $back = $_POST['back'] ?? 'dashboard.php';
 
 try {
+    $referralTransaction = in_array($action, ['save_booking_details','save_referral','add_booking','quick_update_booking_status','update_booking','replace_referral_code','save_referral_settings','save_rate_setting','delete_rate_setting'], true);
+    if ($referralTransaction) {
+        db()->beginTransaction();
+        db()->query("SELECT setting_key FROM rate_card_settings WHERE setting_key='referral_code_usage_limit' FOR UPDATE")->fetch();
+    }
+    if (in_array($action,['save_payment_tab','add_payment','update_payment'],true)) {
+        db()->beginTransaction();
+        $paymentBookingId=(int)($_POST['booking_id'] ?? 0);
+        if ($action==='update_payment') {
+            $lookup=db()->prepare('SELECT booking_id FROM payments WHERE id=?');$lookup->execute([(int)($_POST['payment_id'] ?? 0)]);
+            $paymentBookingId=(int)$lookup->fetchColumn();
+        }
+        $lock=db()->prepare('SELECT id FROM event_bookings WHERE id=? FOR UPDATE');$lock->execute([$paymentBookingId]);
+        if (!$lock->fetchColumn()) throw new RuntimeException('Booking was not found.');
+    }
     if ($action === 'save_booking_details') {
         $bookingId = (int) ($_POST['booking_id'] ?? 0);
         $createdBooking = false;
         $image = upload_image('aadhaar_image', 'uploads/clients');
         $bookingStatus = $_POST['booking_status'] ?? 'pending';
         $clientName = trim($_POST['client_name'] ?? '');
+        if ($clientName === '') throw new RuntimeException('Please enter full name.');
         $phone = preg_replace('/\D+/', '', trim($_POST['phone'] ?? ''));
         $whatsappNumber = preg_replace('/\D+/', '', trim($_POST['whatsapp_number'] ?? '')) ?: null;
         $email = strtolower(trim($_POST['email'] ?? ''));
@@ -68,7 +65,7 @@ try {
         }
 
         if ($bookingId > 0) {
-            $stmt = db()->prepare("SELECT booking_reference, aadhaar_image, payment_status, proposal_amount, proposal_note FROM event_bookings WHERE id=?");
+            $stmt = db()->prepare("SELECT * FROM event_bookings WHERE id=? FOR UPDATE");
             $stmt->execute([$bookingId]);
             $currentBooking = $stmt->fetch() ?: [];
             if ($referralInput !== '') {
@@ -87,7 +84,7 @@ try {
 
             $referrerBonus = $referredBy !== '' ? referral_referrer_bonus_for($referredBy) : 0;
             $newMemberBonus = $referredBy !== '' ? referral_new_member_bonus_default() : 0;
-            $stmt = db()->prepare("UPDATE event_bookings SET client_name=?, phone=?, whatsapp_number=?, email=?, date_of_birth=?, occupation=?, pin_code=?, area_from=?, city_district=?, client_state=?, aadhaar_number=?, aadhaar_image=?, event_date=?, event_type=?, guests=?, package_id=?, referred_by_reference=?, referral_eligible=IF(? IS NULL OR ?='', referral_eligible, 1), referral_referrer_bonus=IF(referral_referrer_bonus > 0, referral_referrer_bonus, ?), referral_referred_bonus=IF(referral_referred_bonus > 0, referral_referred_bonus, ?), note=?, booking_status=?, payment_status=?, proposal_amount=?, proposal_note=? WHERE id=?");
+            $stmt = db()->prepare("UPDATE event_bookings SET client_name=?, phone=?, whatsapp_number=?, email=?, date_of_birth=?, occupation=?, pin_code=?, area_from=?, city_district=?, client_state=?, aadhaar_number=?, aadhaar_image=?, event_date=?, event_type=?, guests=?, package_id=?, note=?, booking_status=?, payment_status=?, proposal_amount=?, proposal_note=? WHERE id=?");
             $stmt->execute([
                 $clientName,
                 $phone,
@@ -105,11 +102,6 @@ try {
                 trim($_POST['event_type'] ?? ''),
                 $_POST['guests'] ?: null,
                 $_POST['package_id'] ?: null,
-                $referredBy ?: null,
-                $referredBy ?: null,
-                $referredBy ?: null,
-                $referrerBonus,
-                $newMemberBonus,
                 trim($_POST['note'] ?? ''),
                 $bookingStatus,
                 $paymentStatus,
@@ -164,6 +156,16 @@ try {
             set_flash('ok', 'Booking added. You can add payment now.');
         }
 
+        if ($action === 'save_booking_details') {
+            member_referral_code($bookingId);
+            $sameReferral = !empty($currentBooking['referred_by_reference']) && $currentBooking['referred_by_reference'] === $referredBy;
+            save_booking_referral($bookingId, $referralInput,
+                $sameReferral ? !empty($currentBooking['referral_eligible']) : true,
+                $sameReferral ? (float)$currentBooking['referral_referrer_bonus'] : null,
+                $sameReferral ? (float)$currentBooking['referral_referred_bonus'] : null,
+                $currentBooking['referral_note'] ?? null);
+        }
+
         if ($bookingStatus === 'cancelled') {
             $stmt = db()->prepare("SELECT event_date FROM event_bookings WHERE id=?");
             $stmt->execute([$bookingId]);
@@ -174,6 +176,8 @@ try {
             }
         }
 
+        sync_cancelled_referrals();
+        db()->commit();
         redirect('booking-form.php?id=' . $bookingId . ($createdBooking ? '#payments' : ''));
     } elseif ($action === 'quick_update_booking_status') {
         $bookingId = (int) $_POST['booking_id'];
@@ -209,47 +213,16 @@ try {
         if ($bookingId <= 0) {
             throw new RuntimeException('Booking is required.');
         }
-        $referralInput = trim($_POST['referred_by_reference'] ?? '');
-        $referredBy = '';
-        $stmt = db()->prepare('SELECT booking_reference FROM event_bookings WHERE id=?');
-        $stmt->execute([$bookingId]);
-        $bookingReference = normalize_booking_reference((string) $stmt->fetchColumn());
-        if ($referralInput !== '') {
-            $referredBy = resolve_referral_reference($referralInput, $bookingId) ?? '';
-            if ($referredBy === $bookingReference) {
-                throw new RuntimeException('A booking cannot refer itself.');
-            }
-            if ($referredBy === '') {
-                throw new RuntimeException('Referred by reference or phone number was not found or is no longer eligible.');
-            }
-        }
-        $referralCap = rate_setting_value('referral_bonus_cap', 5000);
-        $defaultReferralBonus = $referredBy !== '' ? referral_referrer_bonus_for($referredBy) : rate_setting_value('referral_bonus_amount', 2000);
-        $defaultNewMemberBonus = referral_new_member_bonus_default();
-        $referrerBonus = (float) ($_POST['referral_referrer_bonus'] ?? 0);
-        $newMemberBonus = (float) ($_POST['referral_referred_bonus'] ?? 0);
-        if ($referrerBonus <= 0) {
-            $referrerBonus = $defaultReferralBonus;
-        }
-        if ($defaultReferralBonus <= 0) {
-            $referrerBonus = 0;
-        }
-        if ($newMemberBonus <= 0) {
-            $newMemberBonus = $defaultNewMemberBonus;
-        }
-        $stmt = db()->prepare('UPDATE event_bookings SET referred_by_reference=?, referral_eligible=?, referral_referrer_bonus=?, referral_referred_bonus=?, referral_note=? WHERE id=?');
-        $stmt->execute([
-            $referredBy ?: null,
-            isset($_POST['referral_eligible']) ? 1 : 0,
-            min($referralCap, max(0, $referrerBonus)),
-            min($referralCap, max(0, $newMemberBonus)),
-            trim($_POST['referral_note'] ?? '') ?: null,
-            $bookingId,
-        ]);
+        require_referral_csrf();
+        save_booking_referral($bookingId, trim($_POST['referred_by_reference'] ?? ''), isset($_POST['referral_eligible']),
+            isset($_POST['referral_referrer_bonus']) && $_POST['referral_referrer_bonus'] !== '' ? (float)$_POST['referral_referrer_bonus'] : null,
+            isset($_POST['referral_referred_bonus']) && $_POST['referral_referred_bonus'] !== '' ? (float)$_POST['referral_referred_bonus'] : null,
+            trim($_POST['referral_note'] ?? '') ?: null);
         set_flash('ok', 'Referral details saved.');
     } elseif ($action === 'add_booking') {
 		        $image = upload_image('aadhaar_image', 'uploads/clients');
 		        $clientName = trim($_POST['client_name'] ?? '');
+        if ($clientName === '') throw new RuntimeException('Please enter full name.');
 		        $phone = preg_replace('/\D+/', '', trim($_POST['phone'] ?? ''));
 		        $whatsappNumber = preg_replace('/\D+/', '', trim($_POST['whatsapp_number'] ?? '')) ?: null;
 		        $email = strtolower(trim($_POST['email'] ?? ''));
@@ -301,6 +274,9 @@ try {
 	            $referrerBonus,
 	            $newMemberBonus,
 	        ]);
+        $bookingId = (int) db()->lastInsertId();
+        member_referral_code($bookingId);
+        save_booking_referral($bookingId,'');
         set_flash('ok', 'Client booking added.');
     } elseif ($action === 'update_booking') {
         $bookingId = (int) $_POST['booking_id'];
@@ -349,47 +325,27 @@ try {
         sync_booking_payment($bookingId);
         set_flash('ok', 'Payment recorded. Check it, then inform the customer.');
     } elseif ($action === 'save_payment_tab') {
-        $bookingId = (int) $_POST['booking_id'];
-        $paymentStatus = $_POST['payment_status'] ?? 'pending';
-        if (!array_key_exists($paymentStatus, payment_statuses())) {
-            $paymentStatus = 'pending';
+        require_referral_csrf();
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $pricingOnly = ($_POST['save_pricing'] ?? '') === '1';
+        if (!$pricingOnly) {
+            $amount = pricing_money_cents($_POST['amount'] ?? '', 'payment amount');
+            if ($amount <= 0) throw new RuntimeException('Please enter a payment amount greater than zero.');
+            $mode = $_POST['payment_mode'] ?? 'cash';
+            if (!array_key_exists($mode,payment_modes())) throw new RuntimeException('Please select a valid payment type.');
+            $paidOn = trim((string)($_POST['paid_on'] ?? '')) ?: date('Y-m-d');
+            $paidDate = DateTimeImmutable::createFromFormat('!Y-m-d',$paidOn);
+            if (!$paidDate || $paidDate->format('Y-m-d') !== $paidOn) throw new RuntimeException('Please select a valid payment date.');
         }
-        $proposalAmount = $_POST['proposal_amount'] ?: null;
-        $paymentNote = trim($_POST['payment_note'] ?? '');
-
-        db()->prepare("UPDATE event_bookings SET payment_status=?, proposal_amount=?, proposal_note=? WHERE id=?")->execute([
-            $paymentStatus,
-            $proposalAmount,
-            $paymentNote,
-            $bookingId,
-        ]);
-
-        $amountInput = trim((string) ($_POST['amount'] ?? ''));
-        $amountInput = str_replace(',', '', $amountInput);
-        if ($amountInput === '') {
-            throw new RuntimeException('Enter Amount paid to add a payment row.');
+        save_booking_pricing($bookingId,$_POST);
+        if (!$pricingOnly) {
+            $verificationStatus = $_POST['verification_status'] ?? 'pending';
+            if (!array_key_exists($verificationStatus,payment_verification_statuses())) throw new RuntimeException('Please select a valid checked status.');
+            db()->prepare('INSERT INTO payments(booking_id,amount,payment_mode,transaction_id,paid_on,note,verification_status,verified_at) VALUES (?,?,?,?,?,?,?,?)')
+                ->execute([$bookingId,number_format($amount/100,2,'.',''),$mode,trim($_POST['transaction_id'] ?? ''),$paidOn,trim($_POST['payment_note'] ?? ''),$verificationStatus,$verificationStatus==='verified' ? date('Y-m-d H:i:s') : null]);
         }
-        if (!is_numeric($amountInput) || (float) $amountInput <= 0) {
-            throw new RuntimeException('Enter a valid payment amount.');
-        }
-        $verificationStatus = $_POST['verification_status'] ?? 'pending';
-        if (!array_key_exists($verificationStatus, payment_verification_statuses())) {
-            $verificationStatus = 'pending';
-        }
-        $stmt = db()->prepare("INSERT INTO payments (booking_id, amount, payment_mode, transaction_id, paid_on, note, verification_status, verified_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $bookingId,
-            $amountInput,
-            $_POST['payment_mode'] ?? 'cash',
-            trim($_POST['transaction_id'] ?? ''),
-            $_POST['paid_on'] ?: date('Y-m-d'),
-            $paymentNote,
-            $verificationStatus,
-            $verificationStatus === 'verified' ? date('Y-m-d H:i:s') : null,
-        ]);
         sync_booking_payment($bookingId);
-
-        set_flash('ok', 'Payment saved and added to history.');
+        set_flash('ok',$pricingOnly ? 'Total, discount and itemised charges saved. No payment was added.' : 'Payment and itemised booking total saved.');
     } elseif ($action === 'update_payment') {
         $paymentId = (int) $_POST['payment_id'];
         $verificationStatus = $_POST['verification_status'] ?? 'pending';
@@ -602,6 +558,26 @@ try {
         $stmt = db()->prepare('DELETE FROM event_packages WHERE id=?');
         $stmt->execute([(int) $_POST['package_id']]);
         set_flash('ok', 'Package deleted.');
+    } elseif ($action === 'replace_referral_code') {
+        require_referral_csrf();
+        $code = member_referral_code((int)($_POST['booking_id'] ?? 0), true, (int)($_POST['expected_code_id'] ?? 0));
+        set_flash('ok', 'New referral code: ' . $code['code'] . '. The previous code is retired.');
+    } elseif ($action === 'save_referral_settings') {
+        require_referral_csrf();
+        $limit = filter_var($_POST['usage_limit'] ?? '', FILTER_VALIDATE_INT, ['options'=>['min_range'=>1,'max_range'=>100000]]);
+        if ($limit === false) throw new RuntimeException('Please enter a whole-number usage limit from 1 to 100000.');
+        $days = filter_var($_POST['eligibility_days'] ?? '', FILTER_VALIDATE_INT, ['options'=>['min_range'=>0,'max_range'=>36500]]);
+        if ($days === false) throw new RuntimeException('Please enter a valid expiry period (0 means no expiry).');
+        db()->prepare("SELECT setting_key FROM rate_card_settings WHERE setting_key='referral_code_usage_limit' FOR UPDATE")->execute();
+        $previous = ['usage_limit'=>referral_code_usage_limit(),'eligibility_days'=>referral_eligibility_days()];
+        foreach (['referral_code_usage_limit'=>$limit,'referral_eligibility_days'=>$days] as $key=>$value) {
+            db()->prepare('UPDATE rate_card_settings SET setting_value=? WHERE setting_key=?')->execute([$value,$key]);
+        }
+        if (isset($_POST['apply_current'])) {
+            db()->prepare("UPDATE referral_codes SET usage_limit=?,status=IF(usage_count>=?,'exhausted','active') WHERE active_booking_id IS NOT NULL")->execute([$limit,$limit]);
+        }
+        referral_log('settings_updated',null,null,null,json_encode(['previous'=>$previous,'usage_limit'=>$limit,'eligibility_days'=>$days,'apply_current'=>isset($_POST['apply_current'])]));
+        set_flash('ok','Referral settings saved. Codes are replaced only by admin. Existing expiry dates are retained; replacement codes use the new expiry period.');
     } elseif ($action === 'save_rate_setting') {
         $key = trim($_POST['setting_key'] ?? '');
         $label = trim($_POST['label'] ?? '');
@@ -613,17 +589,21 @@ try {
             $key = trim($key, '_') ?: 'custom_rate';
             $key .= '_' . substr(bin2hex(random_bytes(3)), 0, 6);
         }
+        if (str_starts_with($key,'referral_')) require_referral_csrf();
         $value = max(0, (float) ($_POST['setting_value'] ?? 0));
+        if ($key === 'referral_code_usage_limit' && ($value < 1 || $value > 100000 || floor($value) !== $value)) throw new RuntimeException('Referral code usage limit must be a whole number from 1 to 100000.');
         $suffix = trim($_POST['suffix'] ?? '') ?: null;
         $displayOrder = (int) ($_POST['display_order'] ?? 0);
         $stmt = db()->prepare('INSERT INTO rate_card_settings (setting_key, label, setting_value, suffix, display_order) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE label=VALUES(label), setting_value=VALUES(setting_value), suffix=VALUES(suffix), display_order=VALUES(display_order)');
         $stmt->execute([$key, $label, $value, $suffix, $displayOrder]);
+        if (str_starts_with($key,'referral_')) referral_log('settings_updated',null,null,null,json_encode(['key'=>$key,'value'=>$value,'source'=>'rate_card']));
         set_flash('ok', 'Rate setting updated.');
     } elseif ($action === 'delete_rate_setting') {
         $key = trim($_POST['setting_key'] ?? '');
         if ($key === '') {
             throw new RuntimeException('Rate setting is required.');
         }
+        if (str_starts_with($key,'referral_')) { require_referral_csrf(); referral_log('settings_deleted',null,null,null,json_encode(['key'=>$key,'source'=>'rate_card','note'=>'Built-in defaults are restored on the next request.'])); }
         $stmt = db()->prepare('DELETE FROM rate_card_settings WHERE setting_key=?');
         $stmt->execute([$key]);
         set_flash('ok', 'Rate setting deleted.');
@@ -666,7 +646,12 @@ try {
         $stmt->execute([(int) $_POST['term_id']]);
         set_flash('ok', 'Terms deleted.');
     }
+    if (db()->inTransaction()) {
+        if ($referralTransaction) sync_cancelled_referrals();
+        db()->commit();
+    }
 } catch (Throwable $e) {
+    if (db()->inTransaction()) db()->rollBack();
     set_flash('error', $e->getMessage());
 }
 

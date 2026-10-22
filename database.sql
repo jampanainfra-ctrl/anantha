@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS event_bookings (
   booking_status ENUM('pending','proposal_sent','confirmed','event_happening','event_over','cancelled') NOT NULL DEFAULT 'pending',
   payment_status ENUM('pending','advance_paid','partial_paid','paid') NOT NULL DEFAULT 'pending',
   proposal_amount DECIMAL(12,2) DEFAULT NULL,
+  discount_type ENUM('none','percent','fixed') NOT NULL DEFAULT 'none',
+  discount_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+  rate_card_snapshot LONGTEXT DEFAULT NULL,
   proposal_note TEXT DEFAULT NULL,
   referral_eligible TINYINT(1) NOT NULL DEFAULT 0,
   referral_referrer_bonus DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -301,3 +304,52 @@ WHERE NOT EXISTS (SELECT 1 FROM reviews WHERE client_name = 'Mounika Reddy' AND 
 INSERT INTO reviews (client_name, event_type, rating, review_text, status, created_by)
 SELECT 'Kiran & Deepthi', 'Engagement', 4, 'The location was easy for our guests, and the outdoor setup looked lovely in the evening lights. A very pleasant experience.', 'published', 'admin'
 WHERE NOT EXISTS (SELECT 1 FROM reviews WHERE client_name = 'Kiran & Deepthi' AND event_type = 'Engagement');
+
+
+-- Referral lifecycle: retired codes and audit records are retained permanently.
+CREATE TABLE IF NOT EXISTS issued_reference_codes (code VARCHAR(80) NOT NULL PRIMARY KEY, kind VARCHAR(20) NOT NULL, issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS referral_codes (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        booking_id INT NOT NULL,
+        code VARCHAR(80) NOT NULL,
+        active_booking_id INT DEFAULT NULL,
+        status ENUM('active','exhausted','retired') NOT NULL DEFAULT 'active',
+        usage_limit INT NOT NULL,
+        usage_count INT NOT NULL DEFAULT 0,
+        expires_on DATE DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        retired_at TIMESTAMP NULL DEFAULT NULL,
+        UNIQUE KEY uq_referral_code(code), UNIQUE KEY uq_active_referral(active_booking_id), KEY idx_referral_owner(booking_id)
+    ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS referral_uses (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        code_id BIGINT UNSIGNED NOT NULL,
+        referrer_booking_id INT NOT NULL,
+        referred_booking_id INT NOT NULL,
+        status ENUM('applied','removed') NOT NULL DEFAULT 'applied',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_referred_booking(referred_booking_id), KEY idx_referrer(referrer_booking_id), KEY idx_used_code(code_id)
+    ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS referral_logs (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        event_type VARCHAR(40) NOT NULL,
+        code_id BIGINT UNSIGNED DEFAULT NULL,
+        referrer_booking_id INT DEFAULT NULL,
+        referred_booking_id INT DEFAULT NULL,
+        actor VARCHAR(100) NOT NULL,
+        details TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_referral_log_owner(referrer_booking_id), KEY idx_referral_log_created(created_at)
+    ) ENGINE=InnoDB;
+
+INSERT IGNORE INTO rate_card_settings(setting_key,label,setting_value,suffix,display_order) VALUES ('referral_code_usage_limit','Uses allowed per referral code',5,'uses',13);
+
+CREATE TABLE IF NOT EXISTS booking_pricing_history (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, booking_id INT NOT NULL,
+        snapshot LONGTEXT NOT NULL, actor VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_pricing_booking(booking_id,id)
+    ) ENGINE=InnoDB;

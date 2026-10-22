@@ -8,6 +8,7 @@ if ($ready) {
     ensure_package_schema();
     ensure_rate_card_schema();
     ensure_terms_schema();
+    ensure_referral_schema();
 }
 
 $today = new DateTimeImmutable('today');
@@ -115,6 +116,9 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire']))
     } elseif ($requiredTermIds && count($acceptedRequiredIds) !== count($requiredTermIds)) {
         $formError = 'Please accept all three booking terms.';
 	    } else {
+        try {
+        db()->beginTransaction();
+        db()->query("SELECT setting_key FROM rate_card_settings WHERE setting_key='referral_code_usage_limit' FOR UPDATE")->fetch();
 	        $package = $packageMap[$packageId];
 	        $bookingReference = generate_unique_booking_reference($name);
 	        $referrerBonus = $referredBy !== '' ? referral_referrer_bonus_for($referredBy) : 0;
@@ -146,6 +150,9 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire']))
 	            $newMemberBonus,
 	        ]);
         $bookingId = (int) db()->lastInsertId();
+        $ownReferralCode = member_referral_code($bookingId);
+        save_booking_referral($bookingId, $referralInput);
+        db()->commit();
         $message = "Hi Anantha Event Lawns, I submitted enquiry {$bookingReference}.\n"
                  . "Name: {$name}\nMobile: {$phone}\nWhatsApp: " . ($whatsapp ?: $phone) . "\n"
 	                 . "Email: " . ($email ?: 'Not shared') . "\nPIN: {$pin}\n"
@@ -155,7 +162,12 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire']))
                  . "Package: {$package['package_name']} - {$package['guest_range']}\n"
                  . "Please verify my mobile number and share the quotation.";
         $waLink = 'https://wa.me/' . WHATSAPP_NUMBER . '?text=' . rawurlencode($message);
-        $success = 'Your enquiry is saved. Reference: ' . $bookingReference . '. Send it on WhatsApp to verify your mobile number and receive the quotation.';
+        $success = 'Your enquiry is saved. Reference: ' . $bookingReference . '. Send it on WhatsApp to verify your mobile number and receive the quotation. Your referral code: ' . $ownReferralCode['code'] . '.';
+        } catch (Throwable $e) {
+            if (db()->inTransaction()) db()->rollBack();
+            $bookingReference = '';
+            $formError = $e instanceof RuntimeException && !($e instanceof PDOException) ? $e->getMessage() : 'We could not save your enquiry. Please check your details and try again.';
+        }
     }
 }
 
@@ -220,6 +232,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 #submitEnquiry:not(:disabled):hover{background:#f1cf8f;transform:translateY(-1px)}
 #submitEnquiry:disabled{cursor:not-allowed;opacity:.55}
 @media(max-width:980px){.screen{width:min(100% - 26px,900px)}}
+.required-mark{color:var(--red)}
 </style>
 </head>
 <body>
@@ -247,24 +260,24 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 	          <div class="field-group">
 	            <div class="field-group-title"><strong>Contact details</strong><span>We use this to call and verify on WhatsApp.</span></div>
 	            <div class="form-grid">
-		              <label>Full name (required)<input name="name" required value="<?php echo h($name); ?>" placeholder="Sai Kumar"></label>
-			              <label>Mobile number (required)<input type="tel" name="phone" id="phoneInput" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" value="<?php echo h($phone); ?>" placeholder="10-digit mobile"><span class="field-warning err" id="contactWarning"></span></label>
+		              <label>Full name <span class="required-mark" aria-hidden="true">*</span><input name="name" required value="<?php echo h($name); ?>" placeholder="Please enter full name"></label>
+			              <label>Mobile number <span class="required-mark" aria-hidden="true">*</span><input type="tel" name="phone" id="phoneInput" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" value="<?php echo h($phone); ?>" placeholder="10-digit mobile"><span class="field-warning err" id="contactWarning"></span></label>
 					              <label>WhatsApp number (optional)<input type="tel" name="whatsapp_number" id="whatsappInput" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" value="<?php echo h($whatsapp); ?>" placeholder="WhatsApp number"><span class="same-number"><input type="checkbox" id="sameAsMobile"> Same as mobile number</span><span class="field-warning err" id="whatsappWarning"></span></label>
-				              <label>Email (required)<input type="email" name="email" id="emailInput" required autocomplete="email" value="<?php echo h($email); ?>" placeholder="name@example.com"><span class="field-warning err" id="emailWarning"></span></label>
-			              <label>PIN code (required)<input type="tel" name="pin_code" id="pinCode" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" value="<?php echo h($pin); ?>" placeholder="530045"><span class="hint" id="pinHint">Area, city and state auto-fill after 6 digits.</span></label>
+				              <label>Email <span class="required-mark" aria-hidden="true">*</span><input type="email" name="email" id="emailInput" required autocomplete="email" value="<?php echo h($email); ?>" placeholder="name@example.com"><span class="field-warning err" id="emailWarning"></span></label>
+			              <label>PIN code <span class="required-mark" aria-hidden="true">*</span><input type="tel" name="pin_code" id="pinCode" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" value="<?php echo h($pin); ?>" placeholder="Please enter PIN code"><span class="hint" id="pinHint">Area, city and state auto-fill after 6 digits.</span></label>
 		              <label>Area<input name="area_from" id="areaFrom" list="areaOptions" value="<?php echo h($area); ?>" placeholder="Kommadi"><datalist id="areaOptions"></datalist></label>
 			              <label>City / district<input name="city_district" id="cityDistrict" value="<?php echo h($city); ?>" placeholder="Visakhapatnam"></label>
 			              <label>State<input name="client_state" id="clientState" value="<?php echo h($state); ?>" placeholder="Andhra Pradesh"></label>
-				              <label class="full">Referred by reference number<input name="referred_by_reference" value="<?php echo h($referredBy); ?>" placeholder="ANT-RAM-1234 or 10-digit phone"><span class="hint">Optional. Enter an eligible member reference<?php echo $referralEligibilityDays > 0 ? ' within ' . (int) $referralEligibilityDays . ' days of their event' : ''; ?>.</span></label>
+				              <label class="full">Referral code / member phone<input name="referred_by_reference" value="<?php echo h($referredBy); ?>" placeholder="Please enter referral code or member phone"><span class="hint">Optional. Enter a current referral code or member phone<?php echo $referralEligibilityDays > 0 ? ' within ' . (int) $referralEligibilityDays . ' days of their event' : ''; ?>.</span></label>
 		            </div>
 	          </div>
 	          <div class="field-group">
 	            <div class="field-group-title"><strong>Event details</strong><span>Date, occasion, guests and package.</span></div>
 	            <div class="form-grid">
-			              <label class="full">Event date (required)<input type="date" name="event_date_visible" id="eventDateVisible" min="<?php echo h($today->format('Y-m-d')); ?>" value="<?php echo h($selectedDate); ?>"><span class="hint" id="eventDateHint">Choose a date, or pick one from the month below.</span><span class="field-warning err" id="eventDateWarning"></span></label>
-	              <label>Occasion (required)<select name="event_type" required><option value="">Select an occasion</option><?php foreach (['Wedding','Reception','Engagement','Haldi','Mehendi','Sangeet','Birthday','Anniversary','Family celebration','Corporate gathering'] as $type): ?><option value="<?php echo h($type); ?>" <?php echo $eventType === $type ? 'selected' : ''; ?>><?php echo h($type); ?></option><?php endforeach; ?></select></label>
-		              <label>Expected guests (required)<input type="number" min="1" max="<?php echo (int) $maxCapacity; ?>" name="guests" id="guestInput" required value="<?php echo h($guests); ?>" placeholder="300"><span class="hint">Maximum <?php echo (int) $maxCapacity; ?> guests allowed.</span><span class="field-warning err" id="guestWarning"></span></label>
-	              <label>Package<select name="package_id" id="packageSelect" required><option value="">Auto selected by guests</option><?php foreach ($packages as $package): ?><?php $rule = $packageRules[(int) $package['id']]; ?><option value="<?php echo (int) $package['id']; ?>" data-description="<?php echo h($package['discount_reason'] ?? ''); ?>" data-range="<?php echo h($package['guest_range']); ?>" data-min="<?php echo (int) $rule['min']; ?>" data-max="<?php echo (int) $rule['max']; ?>" <?php echo $packageId === (int) $package['id'] ? 'selected' : ''; ?>><?php echo h($package['package_name'] . ' - ' . $package['guest_range']); ?></option><?php endforeach; ?></select><span class="hint">This updates automatically from guest count.</span><span class="field-warning err" id="packageWarning"></span></label>
+			              <label class="full">Event date <span class="required-mark" aria-hidden="true">*</span><input type="date" name="event_date_visible" id="eventDateVisible" required min="<?php echo h($today->format('Y-m-d')); ?>" value="<?php echo h($selectedDate); ?>"><span class="hint" id="eventDateHint">Choose a date, or pick one from the month below.</span><span class="field-warning err" id="eventDateWarning"></span></label>
+	              <label>Occasion <span class="required-mark" aria-hidden="true">*</span><select name="event_type" required><option value="">Select an occasion</option><?php foreach (['Wedding','Reception','Engagement','Haldi','Mehendi','Sangeet','Birthday','Anniversary','Family celebration','Corporate gathering'] as $type): ?><option value="<?php echo h($type); ?>" <?php echo $eventType === $type ? 'selected' : ''; ?>><?php echo h($type); ?></option><?php endforeach; ?></select></label>
+		              <label>Expected guests <span class="required-mark" aria-hidden="true">*</span><input type="number" min="1" max="<?php echo (int) $maxCapacity; ?>" name="guests" id="guestInput" required value="<?php echo h($guests); ?>" placeholder="300"><span class="hint">Maximum <?php echo (int) $maxCapacity; ?> guests allowed.</span><span class="field-warning err" id="guestWarning"></span></label>
+	              <label>Package <span class="required-mark" aria-hidden="true">*</span><select name="package_id" id="packageSelect" required><option value="">Auto selected by guests</option><?php foreach ($packages as $package): ?><?php $rule = $packageRules[(int) $package['id']]; ?><option value="<?php echo (int) $package['id']; ?>" data-description="<?php echo h($package['discount_reason'] ?? ''); ?>" data-range="<?php echo h($package['guest_range']); ?>" data-min="<?php echo (int) $rule['min']; ?>" data-max="<?php echo (int) $rule['max']; ?>" <?php echo $packageId === (int) $package['id'] ? 'selected' : ''; ?>><?php echo h($package['package_name'] . ' - ' . $package['guest_range']); ?></option><?php endforeach; ?></select><span class="hint">This updates automatically from guest count.</span><span class="field-warning err" id="packageWarning"></span></label>
 		            </div>
 	          </div>
 	          <label class="full">Anything else we should know?<textarea name="note" rows="4" placeholder="Timing, rituals, food counters, decor notes"><?php echo h($note); ?></textarea></label>

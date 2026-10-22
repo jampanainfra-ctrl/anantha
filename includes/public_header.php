@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $publicHeaderActive = $publicHeaderActive ?? '';
 $publicHeaderHome = $publicHeaderHome ?? false;
 $homeHref = $publicHeaderHome ? '#top' : 'index.php#top';
@@ -10,6 +10,9 @@ $navClass = static function (string $key) use ($publicHeaderActive): string {
     return $publicHeaderActive === $key ? ' class="active" aria-current="page"' : '';
 };
 ?>
+<link rel="stylesheet" href="assets/cursors.css">
+<link rel="stylesheet" href="assets/forms.css">
+<script src="assets/forms.js" defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap');
 #siteHeader{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition:background .4s ease,padding .4s ease,box-shadow .4s ease}

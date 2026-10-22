@@ -1,0 +1,31 @@
+/* Brand cursors retain native fallbacks and leave touch/high-contrast modes alone. */
+@media (hover: hover) and (pointer: fine) and (forced-colors: none) {
+  html, body {
+    cursor: url('cursors/arrow.svg') 5 3, default;
+  }
+
+  :where(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption, label, q, address, td, th, span, strong, b, em, small, code, pre),
+  :where(input:not([type='button']):not([type='submit']):not([type='reset']):not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']), textarea, [contenteditable='true']) {
+    cursor: url('cursors/text.svg') 12 16, text;
+  }
+
+  :is(a[href], button, select, summary, [role='button'], label[for], label:has(input[type='checkbox'], input[type='radio']), input[type='submit'], input[type='button'], input[type='reset'], input[type='checkbox'], input[type='radio'], input[type='range'], input[type='color'], input[type='file']),
+  :is(a[href], button, summary, [role='button'], label[for], label:has(input[type='checkbox'], input[type='radio'])) * {
+    cursor: url('cursors/pointer.svg') 12 4, pointer !important;
+  }
+
+  html body :is(button, input, select, textarea):disabled,
+  html body :is(button, input, select, textarea):disabled *,
+  html body [aria-disabled='true'], html body [aria-disabled='true'] * {
+    cursor: not-allowed !important;
+  }
+
+  :where(input, textarea, [contenteditable='true']) {
+    caret-color: #bd8738;
+  }
+}
+
+::selection {
+  background: #edcf95;
+  color: #142f28;
+}

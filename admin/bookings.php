@@ -72,7 +72,8 @@ if ($ready) {
       <tbody>
     <?php foreach ($bookings as $index => $booking): ?>
       <?php
-        $quoteTotal = (float) ($booking['proposal_amount'] ?? 0);
+        $price = booking_price_summary($booking);
+        $quoteTotal = $price['net'];
         $paidTotal = (float) ($booking['verified_total'] ?? 0);
         $receivedTotal = (float) ($booking['received_total'] ?? 0);
         $paymentCount = (int) ($booking['payment_count'] ?? 0);
@@ -91,15 +92,15 @@ if ($ready) {
         <td>
           <div class="grid-place"><span><?php echo h(trim(($booking['area_from'] ?? '') . ', ' . ($booking['city_district'] ?? ''), ', ') ?: 'Not added'); ?></span><small>Guests: <?php echo h($booking['guests'] ?: 'Not added'); ?></small></div>
         </td>
-        <td><strong class="money-value">Rs <?php echo h(number_format($quoteTotal)); ?></strong></td>
+        <td><strong class="money-value">Rs <?php echo h(number_format($quoteTotal,2)); ?></strong><?php if ($price['discount_cents'] > 0): ?><br><small>Discount: Rs <?php echo h(number_format($price['discount'],2)); ?></small><?php endif; ?><?php if ($price['charges_cents']>0): ?><br><small>Charges included: Rs <?php echo h(number_format($price['charges'],2)); ?> (deposit Rs <?php echo h(number_format($price['deposit'],2)); ?>)</small><?php endif; ?></td>
         <td>
-          <strong class="money-value">Rs <?php echo h(number_format($paidTotal)); ?></strong><br>
+          <strong class="money-value">Rs <?php echo h(number_format($paidTotal,2)); ?></strong><br>
           <span class="payment-count"><?php echo h((string) $paymentCount); ?> payment<?php echo $paymentCount === 1 ? '' : 's'; ?></span>
-          <?php if ($receivedTotal > $paidTotal): ?><br><span class="muted-text">Received: Rs <?php echo h(number_format($receivedTotal)); ?></span><?php endif; ?>
+          <?php if ($receivedTotal > $paidTotal): ?><br><span class="muted-text">Received: Rs <?php echo h(number_format($receivedTotal,2)); ?></span><?php endif; ?>
           <?php if ($pendingPaymentCount > 0): ?><br><span class="badge pending"><?php echo $pendingPaymentCount; ?> not checked</span><?php endif; ?>
           <?php if ($rejectedPaymentCount > 0): ?><br><span class="badge rejected"><?php echo $rejectedPaymentCount; ?> rejected</span><?php endif; ?>
         </td>
-        <td><strong class="money-value <?php echo $balance > 0 ? 'due' : 'settled'; ?>">Rs <?php echo h(number_format($balance)); ?></strong></td>
+        <td><strong class="money-value <?php echo $balance > 0 ? 'due' : 'settled'; ?>">Rs <?php echo h(number_format($balance,2)); ?></strong></td>
         <td>
           <span class="badge <?php echo h($booking['booking_status']); ?>"><?php echo h(status_label($booking['booking_status'])); ?></span>
         </td>

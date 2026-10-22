@@ -369,7 +369,7 @@ function booking_contact_digits_sql(string $column): string
     return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE({$column}, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '')";
 }
 
-function duplicate_booking_contact_message(string $phone, string $email = '', ?int $excludeBookingId = null, string $whatsappNumber = ''): string
+function duplicate_booking_contact_message(string $phone, string $email = '', ?int $excludeBookingId = null, string $whatsappNumber = '', bool $lock = false): string
 {
     if (!db_ready()) {
         return '';
@@ -388,7 +388,7 @@ function duplicate_booking_contact_message(string $phone, string $email = '', ?i
             $sql .= ' AND id<>?';
             $params[] = $excludeBookingId;
         }
-        $sql .= ' ORDER BY created_at DESC, id DESC LIMIT 1';
+        $sql .= ' ORDER BY created_at DESC, id DESC LIMIT 1' . ($lock ? ' FOR UPDATE' : '');
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
         $match = $stmt->fetch();
@@ -405,7 +405,7 @@ function duplicate_booking_contact_message(string $phone, string $email = '', ?i
             $sql .= ' AND id<>?';
             $params[] = $excludeBookingId;
         }
-        $sql .= ' ORDER BY created_at DESC, id DESC LIMIT 1';
+        $sql .= ' ORDER BY created_at DESC, id DESC LIMIT 1' . ($lock ? ' FOR UPDATE' : '');
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
         $match = $stmt->fetch();
@@ -419,38 +419,10 @@ function duplicate_booking_contact_message(string $phone, string $email = '', ?i
 
 function resolve_referral_reference(string $input, ?int $excludeBookingId = null): ?string
 {
-    $input = trim($input);
-    if ($input === '' || !db_ready()) {
-        return null;
-    }
-
-    $digits = preg_replace('/\D+/', '', $input);
-    if (preg_match('/^\d{10}$/', $digits)) {
-        $sql = 'SELECT booking_reference, event_date, created_at FROM event_bookings WHERE (phone=? OR whatsapp_number=?)';
-        $params = [$digits, $digits];
-        if ($excludeBookingId) {
-            $sql .= ' AND id<>?';
-            $params[] = $excludeBookingId;
-        }
-        $sql .= ' ORDER BY created_at DESC, id DESC LIMIT 1';
-        $stmt = db()->prepare($sql);
-        $stmt->execute($params);
-        $booking = $stmt->fetch();
-        return $booking && referral_reference_is_eligible($booking) ? normalize_booking_reference((string) $booking['booking_reference']) : null;
-    }
-
-    $reference = normalize_booking_reference($input);
-    $sql = 'SELECT booking_reference, event_date, created_at FROM event_bookings WHERE booking_reference=?';
-    $params = [$reference];
-    if ($excludeBookingId) {
-        $sql .= ' AND id<>?';
-        $params[] = $excludeBookingId;
-    }
-    $sql .= ' LIMIT 1';
-    $stmt = db()->prepare($sql);
-    $stmt->execute($params);
-    $matched = $stmt->fetch();
-    return $matched && referral_reference_is_eligible($matched) ? normalize_booking_reference((string) $matched['booking_reference']) : null;
+    if (trim($input) === '' || !db_ready()) return null;
+    ensure_referral_schema();
+    $code = find_referral_code($input, $excludeBookingId);
+    return $code ? $code['code'] : null;
 }
 
 function referral_eligibility_days(): int
@@ -460,27 +432,11 @@ function referral_eligibility_days(): int
 
 function referral_referrer_bonus_for(string $reference): float
 {
-    $reference = normalize_booking_reference($reference);
-    if ($reference === '' || !db_ready()) {
-        return 0.0;
-    }
-
-    $maxCount = max(0, (int) rate_setting_value('referral_max_count', 5));
-    $cap = max(0.0, rate_setting_value('referral_bonus_cap', 5000));
-    $defaultBonus = max(0.0, rate_setting_value('referral_bonus_amount', 2000));
-    if ($maxCount === 0 || $cap <= 0 || $defaultBonus <= 0) {
-        return 0.0;
-    }
-
-    $stmt = db()->prepare('SELECT COUNT(*), COALESCE(SUM(referral_referrer_bonus),0) FROM event_bookings WHERE referred_by_reference=? AND referral_eligible=1');
-    $stmt->execute([$reference]);
-    $row = $stmt->fetch(PDO::FETCH_NUM) ?: [0, 0];
-    if ((int) $row[0] >= $maxCount) {
-        return 0.0;
-    }
-
-    $remaining = max(0.0, $cap - (float) $row[1]);
-    return min($defaultBonus, $remaining);
+    ensure_referral_schema();
+    $stmt = db()->prepare('SELECT booking_id FROM referral_codes WHERE code=?');
+    $stmt->execute([normalize_booking_reference($reference)]);
+    $id = $stmt->fetchColumn();
+    return $id ? min(max(0.0,rate_setting_value('referral_bonus_amount',2000)),referral_bonus_available((int)$id)) : 0.0;
 }
 
 function referral_new_member_bonus_default(): float
@@ -515,26 +471,12 @@ function referral_reference_is_eligible(array $booking, ?DateTimeInterface $toda
 
 function generate_booking_reference_code(string $name = ''): string
 {
-    return 'ANT-' . booking_reference_name_part($name) . '-' . random_int(1000, 9999);
+    return reserve_reference_code('ANT', $name, 'booking');
 }
 
 function generate_unique_booking_reference(string $name = ''): string
 {
-    for ($attempt = 1; $attempt <= 20; $attempt++) {
-        $reference = generate_booking_reference_code($name);
-        try {
-            $stmt = db()->prepare('SELECT COUNT(*) FROM event_bookings WHERE booking_reference = ?');
-            $stmt->execute([$reference]);
-            if ((int) $stmt->fetchColumn() === 0) {
-                return $reference;
-            }
-        } catch (Throwable $e) {
-            return $reference;
-        }
-        usleep(1000);
-    }
-
-    return 'ANT-' . booking_reference_name_part($name) . '-' . substr((string) hrtime(true), -4);
+    return generate_booking_reference_code($name);
 }
 
 function ensure_payment_verification_schema(): void
@@ -571,6 +513,9 @@ function ensure_booking_enquiry_schema(): void
         $columns = db()->query('SHOW COLUMNS FROM event_bookings')->fetchAll();
         $names = array_column($columns, 'Field');
         $additions = [
+            'rate_card_snapshot' => "ALTER TABLE event_bookings ADD rate_card_snapshot LONGTEXT DEFAULT NULL AFTER discount_value",
+            'discount_type' => "ALTER TABLE event_bookings ADD discount_type ENUM('none','percent','fixed') NOT NULL DEFAULT 'none' AFTER proposal_amount",
+            'discount_value' => "ALTER TABLE event_bookings ADD discount_value DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER discount_type",
             'booking_reference' => "ALTER TABLE event_bookings ADD booking_reference VARCHAR(80) DEFAULT NULL AFTER id",
             'whatsapp_number' => "ALTER TABLE event_bookings ADD whatsapp_number VARCHAR(30) DEFAULT NULL AFTER phone",
             'email' => "ALTER TABLE event_bookings ADD email VARCHAR(160) DEFAULT NULL AFTER whatsapp_number",
@@ -933,6 +878,7 @@ function default_rate_settings(): array
         'referral_new_member_bonus' => ['New member referral bonus', '2000', 'Rs', 10],
         'referral_bonus_cap' => ['Referral bonus maximum', '5000', 'Rs', 11],
         'referral_max_count' => ['Maximum paid referrals', '5', 'referrals', 12],
+        'referral_code_usage_limit' => ['Uses allowed per referral code', '5', 'uses', 13],
     ];
 }
 
@@ -1044,3 +990,7 @@ function upload_image(string $field, string $directory): ?string
 
     return str_replace('\\', '/', $safeDirectory . '/' . $fileName);
 }
+
+require_once __DIR__ . '/referrals.php';
+
+require_once __DIR__ . '/booking_pricing.php';

@@ -9,12 +9,13 @@ if ($input === '') {
     json_response(['ok' => true, 'found' => false]);
 }
 
+ensure_referral_schema();
 $reference = resolve_referral_reference($input, $excludeId > 0 ? $excludeId : null);
 if (!$reference) {
     json_response(['ok' => true, 'found' => false, 'message' => 'No eligible member found for this reference or phone number.']);
 }
 
-$stmt = db()->prepare('SELECT id, booking_reference, client_name, phone, whatsapp_number, event_date, event_type FROM event_bookings WHERE booking_reference=? LIMIT 1');
+$stmt = db()->prepare('SELECT b.id, c.code AS booking_reference, b.client_name, b.phone, b.whatsapp_number, b.event_date, b.event_type FROM referral_codes c JOIN event_bookings b ON b.id=c.booking_id WHERE c.code=? LIMIT 1');
 $stmt->execute([$reference]);
 $booking = $stmt->fetch();
 if (!$booking) {

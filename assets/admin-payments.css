@@ -1,0 +1,96 @@
+/* Payments workspace */
+.payment-panel{background:#f7f9f5}
+.payment-panel .payment-screen-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin:2px 0 24px}
+.payment-panel .payment-screen-heading h2{margin:0;font-size:1.7rem;letter-spacing:-.035em}
+.payment-panel .payment-screen-heading p{margin:7px 0 0;color:#728074;font-size:.9rem;line-height:1.6}
+.payment-panel .payment-status-display{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.74rem;color:#748075}
+.payment-panel .payment-entry-form.payment-workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:22px;align-items:start;margin:0}
+.payment-panel .payment-editor{display:grid;gap:20px;min-width:0}
+.payment-panel .payment-card{padding:22px;background:#fff;border:1px solid #e0e7dc;border-radius:14px;min-width:0;box-shadow:0 5px 20px -20px #173c2e}
+.payment-panel .payment-card-heading{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.payment-panel .payment-step{display:grid;place-items:center;flex:0 0 36px;height:36px;background:#eef3e9;border:1px solid #e3eadb;border-radius:10px;color:#647853;font-size:.75rem;font-weight:800}
+.payment-panel .payment-card-heading h3{margin:0;font-size:1rem;font-weight:800;color:#193b2d;line-height:1.4}
+.payment-panel .payment-card-heading p{margin:3px 0 0;font-size:.76rem;line-height:1.5;color:#7b857a}
+.payment-panel .payment-text-link{margin-left:auto;flex:0 0 auto;font-size:.76rem;font-weight:700;color:#47714d;text-decoration:none}
+.payment-panel .payment-text-link:hover,.payment-panel .payment-text-button:hover{text-decoration:underline}
+.payment-panel .payment-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 16px;align-items:start}
+.payment-panel .payment-fields--pricing,.payment-panel .payment-fields--meter{grid-template-columns:repeat(3,minmax(0,1fr))}
+.payment-panel .payment-fields>label{min-width:0;font-size:.74rem;line-height:1.5;color:#546252}
+.payment-panel .payment-fields>label>input,.payment-panel .payment-fields>label>select{height:48px;margin-top:8px;padding:11px 12px;border-color:#dce3d8;border-radius:8px;font-size:.85rem;box-shadow:0 1px 2px rgba(18,47,31,.025);background:#fff}
+.payment-panel .payment-fields>label>textarea{margin-top:8px;min-height:74px;padding:12px;border-color:#dce3d8;font-size:.85rem}
+.payment-panel input:focus-visible,.payment-panel select:focus-visible,.payment-panel textarea:focus-visible{outline:2px solid #ceaa61;outline-offset:2px}
+.payment-panel .payment-fields input[readonly]{background:#f2f6ed;border-style:dashed;color:#4b674a;font-weight:700}
+.payment-panel .payment-fields .form-note{display:block;margin-top:7px;font-size:.71rem;line-height:1.55;font-weight:400;color:#788473}
+.payment-panel .payment-help{margin:16px 0 0;padding:10px 12px;border-radius:8px;background:#f7f9f2;color:#7b846f;font-size:.73rem;line-height:1.6}
+.payment-panel .payment-charge-context{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid #eef1e9;align-items:end}
+.payment-panel .payment-guests{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+.payment-panel .payment-guests label{font-size:.74rem;line-height:1.5}
+.payment-panel .payment-guests input{height:44px;padding:10px 12px;background:#f5f7f0;border:1px solid #e2e7dd;font-size:.85rem}
+.payment-panel .payment-text-button{border:0;background:transparent;padding:10px 0;min-height:44px;font-size:.73rem;font-weight:700;color:#577a4b;white-space:nowrap;cursor:pointer}
+.payment-panel .payment-rate-choice .rate-refresh{display:flex;align-items:center;gap:8px;padding:12px;background:#f7f9f4;border:1px solid #e8ecdf;border-radius:9px;font-size:.71rem;line-height:1.5;color:#647654;margin:0}
+.payment-panel .payment-subheading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px}
+.payment-panel .payment-subheading h4{margin:0;font-size:.8rem;color:#4c6147}
+.payment-panel .payment-subheading span{font-size:.65rem;color:#7b8b71;background:#f0f5e9;padding:4px 8px;border-radius:5px}
+.payment-panel .extra-charge-grid{margin-top:20px}
+.payment-panel .payment-inline-warning{margin:14px 0 0;font-size:.75rem;line-height:1.6}
+.payment-panel .payment-breakdown{margin-top:20px;border-top:1px solid #edf0e7}
+.payment-panel .payment-breakdown>summary,.payment-panel .payment-explainer>summary{cursor:pointer;color:#527048;font-weight:700;font-size:.76rem;padding:14px 0}
+.payment-panel .payment-breakdown .table-wrap{margin:0;border:1px solid #e5eade;border-radius:8px;overflow:hidden}
+.payment-panel .rate-charge-table{width:100%;min-width:0;table-layout:fixed}
+.payment-panel .rate-charge-table th{font-size:.6rem;color:#849078;background:#f6f8f0;font-weight:700;letter-spacing:.05em;padding:12px 10px}
+.payment-panel .rate-charge-table td{padding:12px 10px;font-size:.73rem;line-height:1.6;color:#52634a;border-color:#eef0e8;overflow-wrap:anywhere}
+.payment-panel .rate-charge-table td:last-child{font-variant-numeric:tabular-nums;font-weight:600;color:#29452c}
+.payment-panel .rate-charge-table tbody tr:last-child td{background:#f0f5e9;font-weight:800;color:#28492e;border-bottom:0}
+.payment-panel .payment-explainer{margin-top:5px}
+.payment-panel .payment-explainer>summary{font-weight:500;font-size:.7rem;padding-bottom:0}
+.payment-panel .payment-explainer p{font-size:.74rem;color:#7b8773;line-height:1.7;margin:10px 0 0}
+.payment-panel .payment-record-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #edf0e7;margin-top:22px;padding-top:18px}
+.payment-panel .payment-record-footer p{margin:0;color:#7a8770;font-size:.73rem;line-height:1.6}
+.payment-panel .payment-record-footer .btn{min-height:46px;padding:12px 22px;white-space:nowrap;font-size:.85rem;border-radius:8px}
+.payment-panel .payment-total-card{position:sticky;top:20px;background:#fff;border:1px solid #dbe4d5;border-radius:14px;overflow:hidden;min-width:0;box-shadow:0 12px 26px -24px #193d2c}
+.payment-panel .payment-total-hero{background:#173d2c;color:#fff;padding:25px 22px}
+.payment-panel .payment-preview-label{display:block;color:#e2c382;font-size:.65rem;letter-spacing:.14em;font-weight:700;text-transform:uppercase}
+.payment-panel .payment-total-hero>strong{display:block;margin:12px 0 8px;font-size:clamp(1.45rem,2.1vw,2rem);line-height:1.25;letter-spacing:-.04em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.payment-panel .payment-total-hero>p{margin:0;color:#b8ceba;font-size:.7rem;line-height:1.6}
+.payment-panel .payment-total-body{padding:20px}
+.payment-panel .payment-total-lines{margin:0}
+.payment-panel .payment-total-lines>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 0}
+.payment-panel .payment-total-lines dt{font-size:.73rem;line-height:1.6;color:#71806a;max-width:55%}
+.payment-panel .payment-total-lines dd{margin:0;text-align:right;color:#354e31;font-size:.77rem;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.payment-panel .payment-total-lines dd.payment-saving{color:#9e773b}
+.payment-panel .payment-total-lines .payment-total-paid{border-top:1px solid #ebefe4;margin-top:7px;padding-top:16px}
+.payment-panel .payment-total-paid dd{color:#39824e}
+.payment-panel .payment-balance{background:#f0f5e8;border:1px solid #e2ead7;border-radius:10px;padding:16px;margin-top:14px}
+.payment-panel .payment-balance span{display:block;color:#6c805c;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.payment-panel .payment-balance strong{display:block;color:#22492b;font-size:1.45rem;letter-spacing:-.03em;margin-top:7px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.payment-panel .payment-advance{font-size:.69rem;color:#879275;line-height:1.8;padding:0 2px;margin:14px 0 18px}
+.payment-panel .payment-save-pricing{width:100%;min-height:44px;background:#fff;border:1px solid #d9e3cf;color:#41643b;font-size:.79rem;border-radius:8px}
+.payment-panel .payment-save-pricing:hover{background:#f3f7ec}
+.payment-panel .payment-summary-note{text-align:center;margin:9px 0 0;color:#95a086;font-size:.64rem;line-height:1.6}
+.payment-panel .payment-history-card{margin-top:24px;border:1px solid #e0e7dc;border-radius:14px;background:#fff;overflow:hidden}
+.payment-panel .payment-history-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px}
+.payment-panel .payment-history-heading h3{margin:0;font-size:1rem;color:#25442d}
+.payment-panel .payment-history-heading p{margin:5px 0 0;color:#839078;font-size:.75rem;line-height:1.6}
+.payment-panel .payment-history-count{background:#f0f4e9;color:#758869;border-radius:6px;font-size:.69rem;white-space:nowrap;padding:7px 10px}
+.payment-panel .payment-history{margin:0;border:0;border-radius:0}
+.payment-panel .payment-history-table{min-width:850px}
+.payment-panel .payment-history-table th{font-size:.62rem;letter-spacing:.04em;padding:13px 18px;background:#f6f8f1;color:#7e8c71}
+.payment-panel .payment-history-table td{padding:18px;font-size:.79rem;vertical-align:middle;border-color:#eef0e8}
+.payment-panel .payment-history-table th:nth-child(5){width:285px}
+.payment-panel .payment-history-table .badge{font-size:.65rem;white-space:nowrap}
+.payment-panel .payment-history-amount{font-size:.86rem;color:#244b31;font-variant-numeric:tabular-nums}
+.payment-panel .payment-history-method{display:block;color:#536b46;font-weight:600}
+.payment-panel .payment-reference{display:block;font-size:.67rem;color:#909c82;max-width:240px;margin-top:5px;overflow-wrap:anywhere}
+.payment-panel .payment-status-form{grid-template-columns:minmax(0,1fr) auto;min-width:225px;gap:8px}
+.payment-panel .payment-status-form select{font-size:.72rem;min-height:40px;border-color:#e1e7d9;background:#fff;padding:8px}
+.payment-panel .payment-status-form .btn{min-height:40px;background:#eef3e7;color:#547645;font-size:.7rem;padding:9px 13px}
+.payment-panel .payment-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px;color:#708268}
+.payment-panel .payment-empty span{font-size:.75rem;color:#96a087}
+.payment-panel .pricing-history{border-color:#e0e7dc;background:#fff;border-radius:12px;margin-top:20px;padding:17px 22px}
+.payment-panel .pricing-history>summary{color:#647953;font-size:.78rem}
+.payment-panel .pricing-history>.form-note{font-size:.74rem;line-height:1.7;margin:12px 0}
+@media(max-width:1280px){.payment-panel .payment-entry-form.payment-workspace{grid-template-columns:1fr!important}.payment-panel .payment-total-card{position:static}.payment-panel .payment-total-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 24px}.payment-panel .payment-total-lines{grid-row:span 4}.payment-panel .payment-total-hero>strong{font-size:1.8rem}.payment-panel .payment-balance{margin-top:0}.payment-panel .payment-total-body>.sr-only{position:absolute}}
+@media(max-width:640px){.payment-panel .payment-screen-heading{align-items:flex-start;flex-direction:column;gap:14px}.payment-panel .payment-card{padding:17px 15px}.payment-panel .payment-card-heading{gap:10px;align-items:flex-start;margin-bottom:18px}.payment-panel .payment-card-heading p{font-size:.73rem}.payment-panel .payment-text-link{font-size:.67rem}.payment-panel .payment-fields,.payment-panel .payment-fields--pricing,.payment-panel .payment-fields--meter{grid-template-columns:1fr}.payment-panel .payment-charge-context{grid-template-columns:1fr;gap:14px}.payment-panel .payment-fields>label>input,.payment-panel .payment-fields>label>select,.payment-panel .payment-fields>label>textarea{font-size:16px}.payment-panel .payment-subheading{align-items:flex-start;flex-direction:column}.payment-panel .payment-total-body{display:block}.payment-panel .payment-balance{margin-top:14px}.payment-panel .payment-record-footer{align-items:stretch;flex-direction:column}.payment-panel .payment-record-footer .btn{width:100%}.payment-panel .payment-history-heading{padding:17px 15px;align-items:flex-start}.payment-panel .payment-history-count{font-size:.62rem}.payment-panel .rate-charge-table td,.payment-panel .rate-charge-table th{padding:9px 7px;font-size:.67rem}.payment-panel .payment-status-form select{font-size:16px}.payment-panel .pricing-history{padding:16px}.payment-panel .payment-total-lines dt{font-size:.8rem}.payment-panel .payment-total-lines dd{font-size:.83rem}}
+
+.payment-panel #paymentExtrasRow[hidden]{display:none}
+@media(max-width:1280px){.payment-panel .payment-editor{display:contents}.payment-panel .payment-card:nth-child(1){order:1}.payment-panel .payment-card:nth-child(2){order:2}.payment-panel .payment-total-card{order:3}.payment-panel .payment-card:nth-child(3){order:4}}

@@ -26,7 +26,7 @@ $bookingTerms = [
     ['Cleaning', 'A cleaning charge applies, calculated on the guest count recorded in your booking, with a minimum charge of Rs. 500 for gatherings of up to 50 guests.'],
     ['Security deposit', 'A refundable deposit of Rs. 10,000 applies to every booking. It is refunded within 48 hours of the event, subject to inspection and confirmation that there are no damages or recoverable charges.'],
     ['Advance and hold', 'A requested date is held for 48 hours. Confirmation follows an advance of 50% of the booking amount.'],
-    ['Cancellation and rescheduling', 'More than 30 days before the event: the advance is refunded in full. Between 30 and 15 days: 50% of the advance is refunded. Within 15 days of the event: the advance is not refundable. One reschedule is permitted, subject to availability.'],
+    ['Cancellation and rescheduling', 'One reschedule is permitted, subject to availability. Refunds on the advance depend on when you cancel:'],
 ];
 ?>
 <!DOCTYPE html>
@@ -39,7 +39,7 @@ $bookingTerms = [
 <link rel="icon" href="assets/logo.jpeg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--deep:#142f28;--forest:#20483f;--leaf:#2e6b58;--gold:#d9a050;--sun:#f1cf8f;--paper:#f8f3e8;--white:#fffdf8;--ink:#1b2a24;--muted:#63736c;--line:rgba(20,47,40,.14);--cream:#e4dac3;--sky:#e8f2ee;--rose:#f4ded7;--shadow:0 24px 60px -34px rgba(20,47,40,.58)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased}img{max-width:100%;display:block}a{text-decoration:none;color:inherit}.container,.wrap{width:min(1180px,calc(100% - 36px));margin:auto}
@@ -54,6 +54,11 @@ footer{background:#10241f;color:var(--cream);padding:42px 0}.foot-row{display:gr
 @media(max-width:980px){.hero-layout{grid-template-columns:1fr}.snapshot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rule-grid,.term-grid,.foot-row{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:10px}}@media(max-width:860px){.nav-links{position:fixed;top:0;right:0;z-index:101;height:100vh;width:min(320px,86vw);background:#17332b;flex-direction:column;padding:100px 32px 32px;transform:translateX(100%);transition:transform .4s ease;gap:22px;box-shadow:-24px 0 50px -28px rgba(0,0,0,.65)}.nav-links.open{transform:translateX(0)}.menu-toggle{display:grid}.menu-close-row{display:flex;justify-content:flex-end;position:absolute;top:22px;right:24px}body.menu-open{overflow:hidden}.page-nav{top:68px}}@media(max-width:540px){.container,.wrap{width:min(100% - 26px,1180px)}.hero{padding-top:120px}.hero-actions .btn{width:100%}.hero-panel{padding:16px}.priority-list li{grid-template-columns:34px 1fr}.priority-icon{width:34px;height:34px}.snapshot-grid{grid-template-columns:1fr}.rule-section{padding:42px 0}.rule-card{padding:18px}.rule-card .num{position:static;margin-bottom:12px}.terms{padding:58px 0}}
 .priority-list > li > .priority-icon{display:flex;align-items:center;justify-content:center;margin:0;color:var(--sun);font-size:0;line-height:1}.priority-icon svg{display:block;width:21px;height:21px;overflow:visible;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}.priority-list > li > .priority-copy{display:block;margin-top:2px;color:#52645c;font-size:.9rem;line-height:1.45}
 .nav-links a:hover,.nav-links a.active{color:var(--gold);font-weight:800}
+/* Booking overview and terms */
+.rule-summary{background:#edf4ee;padding:24px 0 48px}.rule-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.rule-summary-card{border-radius:18px;padding:22px 24px;font-family:'Plus Jakarta Sans',sans-serif}.rule-summary-card.welcome{background:#e1f2e5;color:#163e2b}.rule-summary-card.not-allowed{background:#fce7e2;color:#70201c}.rule-summary-card h2{display:flex;align-items:center;gap:12px;font:600 27px/1.2 'Cormorant Garamond',Georgia,serif;margin:0 0 10px}.rule-summary-card ul{margin:0;padding-left:20px;font-size:14px;line-height:2}.rule-summary-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;height:24px;font:700 19px/1 sans-serif;color:#fff}.welcome .rule-summary-icon{background:#4dcc85;border:1px solid #37b770;border-radius:3px}.not-allowed .rule-summary-icon{background:#ff4e79;border-radius:50%}
+.terms{background:#102e22;padding:62px 0 34px;font-family:'Plus Jakarta Sans',sans-serif}.terms .terms-heading{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(220px,1fr);gap:34px;align-items:end;margin-bottom:28px}.terms .eyebrow{color:#dda246;font-size:11px;letter-spacing:.25em}.terms h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(2rem,3.6vw,3rem);font-weight:600;line-height:1.15;color:#f5e9c9;margin:8px 0 0}.terms .terms-intro{font-size:14px;line-height:1.65;color:#d0ddce;margin:0;max-width:360px}.terms .term-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.terms .term-card{background:rgba(255,255,255,.055);border:1px solid rgba(228,218,195,.22);border-radius:16px;padding:22px;box-shadow:none}.terms .term-card:last-child{grid-column:span 2}.terms .term-card h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#e1a442;margin:0 0 9px}.terms .term-card p{color:#e0e7db;font-size:14px;line-height:1.85;margin:0}.refund-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px}.refund-card{background:rgba(255,255,255,.07);border-radius:14px;text-align:center;padding:20px 14px}.refund-card strong{display:block;font:700 30px/1.2 'Cormorant Garamond',Georgia,serif;color:#e1a442;margin-bottom:8px}.refund-card span{font-size:12px;line-height:1.6;color:#e0e7db}.terms .remember{display:block;margin-top:22px;padding:24px;border-radius:16px;background:#dda246;color:#201807;font-size:14px;font-weight:600;line-height:1.7}.terms .remember .btn.light{display:inline-flex;width:auto;margin-top:16px;padding:10px 22px;min-height:44px;background:#171409;border-color:#171409;font-size:12px}.terms .remember span{display:block}
+@media(max-width:980px) and (min-width:761px){.terms .terms-heading{grid-template-columns:1fr}.terms .terms-intro{max-width:620px}.terms .term-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.terms .term-card:last-child{grid-column:1/-1}}
+@media(max-width:760px){.rule-summary{padding:24px 0 32px}.rule-summary-grid{grid-template-columns:1fr;gap:14px}.rule-summary-card{padding:20px}.rule-summary-card ul{font-size:13px}.terms{padding:44px 0 32px}.terms .terms-heading{grid-template-columns:1fr;gap:16px;margin-bottom:22px}.terms .term-card:last-child{grid-column:auto}.terms .term-card{padding:20px}.refund-grid{grid-template-columns:1fr;gap:10px}.refund-card{padding:16px}.terms .remember{padding:20px}.terms .terms-intro{max-width:none}}
 </style>
 </head>
 <body>
@@ -130,11 +135,38 @@ footer{background:#10241f;color:var(--cream);padding:42px 0}.foot-row{display:gr
     </section>
   <?php endforeach; ?>
 
+  <section class="rule-summary" aria-label="Welcome and not allowed at the venue">
+    <div class="wrap rule-summary-grid">
+      <article class="rule-summary-card welcome">
+        <h2><span class="rule-summary-icon" aria-hidden="true">✓</span>Welcome</h2>
+        <ul>
+          <li>Outside decorators and caterers</li>
+          <li>Pets, supervised by their owners</li>
+          <li>Setup from check-in time</li>
+          <li>Licensed alcohol service</li>
+        </ul>
+      </article>
+      <article class="rule-summary-card not-allowed">
+        <h2><span class="rule-summary-icon" aria-hidden="true">−</span>Not allowed</h2>
+        <ul>
+          <li>Vehicles, burners, tandoors or generators on the lawn</li>
+          <li>Drilling, nailing or cutting without approval</li>
+          <li>Outdoor DJ past 10:00 PM</li>
+          <li>Fireworks or flame effects without approval</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
   <section class="terms" id="booking-terms">
     <div class="wrap">
-      <div class="eyebrow">Booking terms</div>
-      <h2>Confirm with clear expectations</h2>
-      <p class="terms-intro">These are the practical booking points most families ask about before confirming a date.</p>
+      <div class="terms-heading">
+        <div>
+          <div class="eyebrow">Booking terms</div>
+          <h2>Confirm with clear expectations</h2>
+        </div>
+        <p class="terms-intro">The practical booking points most families ask about before confirming a date.</p>
+      </div>
       <div class="term-grid">
         <?php foreach ($bookingTerms as $term): ?>
           <article class="term-card">
@@ -142,6 +174,11 @@ footer{background:#10241f;color:var(--cream);padding:42px 0}.foot-row{display:gr
             <p><?php echo h($term[1]); ?></p>
           </article>
         <?php endforeach; ?>
+      </div>
+      <div class="refund-grid" aria-label="Cancellation refunds on the advance">
+        <div class="refund-card"><strong>100%</strong><span>Refund, more than 30 days before the event</span></div>
+        <div class="refund-card"><strong>50%</strong><span>Refund, between 30 and 15 days</span></div>
+        <div class="refund-card"><strong>0%</strong><span>Refund, within 15 days of the event</span></div>
       </div>
       <div class="remember">
         <span>Please remember: enjoy the celebration, respect the property, follow the timings, and leave it ready for the next celebration.</span>

@@ -28,7 +28,7 @@
     <div class="public-footer__row">
       <div class="public-footer__col">
         <div class="public-footer__brand"><img src="assets/logo.jpeg" alt="Anantha logo" loading="lazy" decoding="async"><span>Anantha Event Lawns</span></div>
-        <span class="public-footer__text">DRK Raju Township, Plot 61, Kommadi Rd, Gandhi Nagar, Madhurawada, Madhuravada, Andhra Pradesh 530045, India</span>
+        <span class="public-footer__text">DRK Raju Township, Plot 61, Kommadi Rd, Gandhi Nagar, Madhurawada, Andhra Pradesh 530045, India</span>
       </div>
       <div class="public-footer__col">
         <strong>Visit</strong>
