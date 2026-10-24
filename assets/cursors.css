@@ -1,17 +1,17 @@
 /* Brand cursors retain native fallbacks and leave touch/high-contrast modes alone. */
 @media (hover: hover) and (pointer: fine) and (forced-colors: none) {
   html, body {
-    cursor: url('cursors/arrow.svg') 5 3, default;
+    cursor: url('cursors/arrow.svg') 3 2, default;
   }
 
   :where(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, figcaption, label, q, address, td, th, span, strong, b, em, small, code, pre),
   :where(input:not([type='button']):not([type='submit']):not([type='reset']):not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']), textarea, [contenteditable='true']) {
-    cursor: url('cursors/text.svg') 12 16, text;
+    cursor: url('cursors/text.svg') 8 11, text;
   }
 
   :is(a[href], button, select, summary, [role='button'], label[for], label:has(input[type='checkbox'], input[type='radio']), input[type='submit'], input[type='button'], input[type='reset'], input[type='checkbox'], input[type='radio'], input[type='range'], input[type='color'], input[type='file']),
   :is(a[href], button, summary, [role='button'], label[for], label:has(input[type='checkbox'], input[type='radio'])) * {
-    cursor: url('cursors/pointer.svg') 12 4, pointer !important;
+    cursor: url('cursors/pointer.svg') 8 3, pointer !important;
   }
 
   html body :is(button, input, select, textarea):disabled,
@@ -29,3 +29,6 @@
   background: #edcf95;
   color: #142f28;
 }
+
+/* The native arrow remains immediate; a small accent follows softly. */
+.cursor-accent{position:fixed;top:0;left:0;width:18px;height:18px;margin:-9px 0 0 -9px;border:1px solid #a17c42;border-radius:50%;background:#d9a24b08;box-shadow:0 0 0 1px #fff8;pointer-events:none;z-index:10000;opacity:0;transition:width .18s ease,height .18s ease,margin .18s ease,opacity .15s ease,border-color .18s ease;will-change:transform}.cursor-accent.is-visible{opacity:.65}.cursor-accent.is-link{width:24px;height:24px;margin:-12px 0 0 -12px;border-color:#d9a24b}.cursor-accent.is-down{width:12px;height:12px;margin:-6px 0 0 -6px}.cursor-accent.is-editing{opacity:0}@media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse),(forced-colors:active){.cursor-accent{display:none!important}}

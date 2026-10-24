@@ -85,10 +85,19 @@ if (function_exists('db_ready') && db_ready()) {
     { keys: ['payment', 'pay', 'upi', 'advance'], text: 'Please do not share payment details in chat. The team shares quotation and payment steps only after verifying your enquiry.' },
     { keys: ['contact', 'phone', 'whatsapp'], text: 'You can call +91 79950 11199 or use the WhatsApp button for a quicker reply.' }
   ];
+  const availabilityUrl = 'https://www.ananthaeventlawns.com/availability/';
   const add = (text, type) => {
     const p = document.createElement('p');
     p.className = type;
     p.textContent = text;
+    if (type === 'bot' && text.endsWith(availabilityUrl)) {
+      p.textContent = text.slice(0, -availabilityUrl.length);
+      const link = document.createElement('a');
+      link.href = availabilityUrl;
+      link.textContent = availabilityUrl;
+      link.style.overflowWrap = 'anywhere';
+      p.appendChild(link);
+    }
     log.appendChild(p);
     log.scrollTop = log.scrollHeight;
   };
@@ -104,7 +113,7 @@ if (function_exists('db_ready') && db_ready()) {
     return '';
   };
   const checkAvailability = async (dateValue) => {
-    const response = await fetch(`api/availability.php?date=${encodeURIComponent(dateValue)}`, {
+    const response = await fetch(`<?php echo app_url('api/availability.php', ''); ?>?date=${encodeURIComponent(dateValue)}`, {
       headers: { Accept: 'application/json' },
       cache: 'no-store'
     });
@@ -113,14 +122,14 @@ if (function_exists('db_ready') && db_ready()) {
     if (data.status === 'past') {
       return `No, ${dateValue} is a past date and cannot be booked.`;
     }
-    return data.available ? `Yes, ${dateValue} is available for booking. Please fill the enquiry form to confirm next steps.` : `No, ${dateValue} is already booked. Please choose another date.`;
+    return data.available ? `Yes, ${dateValue} is available for booking. Please fill the enquiry form to confirm next steps. ${availabilityUrl}` : `No, ${dateValue} is already booked. Please choose another date. ${availabilityUrl}`;
   };
   const answer = async (text) => {
     const words = text.toLowerCase();
     const dateValue = parseDate(words);
     if (dateValue || ['availability', 'available', 'free', 'date', 'book', 'booking', 'calendar'].some(key => words.includes(key))) {
       if (!dateValue) {
-        add('Please share the event date, for example 12-2-2026 or 2026-02-12. I will check the backend and reply yes or no.', 'bot');
+        add('Please share the event date, for example 12-2-2026 or 2026-02-12. I will check the availability and reply yes or no.', 'bot');
         return;
       }
       try {

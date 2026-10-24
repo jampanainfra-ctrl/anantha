@@ -10,3 +10,6 @@
 /.vscode/
 *.log
 Thumbs.db
+
+/storage/mail-settings.php
+/storage/google-reviews-settings.php

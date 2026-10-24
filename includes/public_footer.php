@@ -27,16 +27,16 @@
   <div class="public-footer__inner">
     <div class="public-footer__row">
       <div class="public-footer__col">
-        <div class="public-footer__brand"><img src="assets/logo.jpeg" alt="Anantha logo" loading="lazy" decoding="async"><span>Anantha Event Lawns</span></div>
+        <div class="public-footer__brand"><img src="<?php echo h(app_url('assets/logo.jpeg', '')); ?>" alt="Anantha logo" loading="lazy" decoding="async"><span>Anantha Event Lawns</span></div>
         <span class="public-footer__text">DRK Raju Township, Plot 61, Kommadi Rd, Gandhi Nagar, Madhurawada, Andhra Pradesh 530045, India</span>
       </div>
       <div class="public-footer__col">
         <strong>Visit</strong>
-        <a href="index.php#top">Home</a>
-        <a href="gallery.php">Gallery</a>
-        <a href="blogs.php">Blogs</a>
-        <a href="rules.php">Venue rules</a>
-        <a href="index.php#visit">Contact</a>
+        <a href="<?php echo h(app_url('index.php', '')); ?>#top">Home</a>
+        <a href="<?php echo h(app_url('gallery.php', '')); ?>">Gallery</a>
+        <a href="<?php echo h(app_url('blogs.php', '')); ?>">Blogs</a>
+        <a href="<?php echo h(app_url('rules.php', '')); ?>">Venue rules</a>
+        <a href="<?php echo h(app_url('index.php', '')); ?>#visit">Contact</a>
       </div>
       <div class="public-footer__col">
         <strong>Reach us</strong>
@@ -57,7 +57,7 @@
     <div class="public-footer__credit">
       <div class="public-footer__signature">
         <span class="public-footer__signature-label">Digital presence engineered by</span>
-        <a class="public-footer__studio" href="https://manacoding.online" target="_blank" rel="noopener"><img class="public-footer__studio-logo" src="assets/manacoding-logo.jpg" alt="ManaCoding logo" loading="lazy" decoding="async"><span>ManaCoding</span></a>
+        <a class="public-footer__studio" href="https://manacoding.online" target="_blank" rel="noopener"><img class="public-footer__studio-logo" src="<?php echo h(app_url('assets/manacoding-logo.jpg', '')); ?>" alt="ManaCoding logo" loading="lazy" decoding="async"><span>ManaCoding</span></a>
       </div>
     </div>
   </div>

@@ -36,10 +36,10 @@ function render_term_rows(array $terms, string $search): string
         ?>
         <tr>
           <td>
-            <form id="<?php echo h($termFormId); ?>" method="POST" action="actions.php"></form>
+            <form id="<?php echo h($termFormId); ?>" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>"></form>
             <input form="<?php echo h($termFormId); ?>" name="title" required value="<?php echo h($term['title']); ?>">
             <input form="<?php echo h($termFormId); ?>" type="hidden" name="action" value="save_term">
-            <input form="<?php echo h($termFormId); ?>" type="hidden" name="back" value="<?php echo h($back); ?>">
+            <input form="<?php echo h($termFormId); ?>" type="hidden" name="back" value="<?php echo h(app_url($back, 'admin')); ?>">
             <input form="<?php echo h($termFormId); ?>" type="hidden" name="term_id" value="<?php echo (int) $term['id']; ?>">
           </td>
           <td><textarea form="<?php echo h($termFormId); ?>" name="term_text" rows="3" required><?php echo h($term['term_text']); ?></textarea></td>
@@ -48,9 +48,9 @@ function render_term_rows(array $terms, string $search): string
 	          <td><label class="check-label"><input form="<?php echo h($termFormId); ?>" type="checkbox" name="is_active" <?php echo (int) $term['is_active'] === 1 ? 'checked' : ''; ?>> Active</label></td>
 	          <td><button form="<?php echo h($termFormId); ?>" class="btn gold">Update</button></td>
           <td>
-            <form method="POST" action="actions.php" onsubmit="return confirm('Delete this term?');">
+            <form method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>" onsubmit="return confirm('Delete this term?');">
               <input type="hidden" name="action" value="delete_term">
-              <input type="hidden" name="back" value="<?php echo h($back); ?>">
+              <input type="hidden" name="back" value="<?php echo h(app_url($back, 'admin')); ?>">
               <input type="hidden" name="term_id" value="<?php echo (int) $term['id']; ?>">
               <button class="btn red">Delete</button>
             </form>
@@ -60,7 +60,7 @@ function render_term_rows(array $terms, string $search): string
     if (!$terms): ?>
 	      <tr><td colspan="7">No terms found. Use Add Terms to create one.</td></tr>
     <?php endif;
-    return ob_get_clean();
+    return admin_csrf_forms(ob_get_clean());
 }
 
 $terms = $ready ? term_rows($search) : [];
@@ -78,16 +78,16 @@ admin_page_start('Terms & Conditions', 'terms');
 ?>
 <div class="top">
 	  <div><h1>Terms & Conditions</h1><p>Add, search, edit, update and delete terms. Mark up to three as Booking check for the enquiry form.</p></div>
-  <a class="btn" href="../terms.php" target="_blank">View Public Page</a>
+  <a class="btn" href="<?php echo h(app_url('../terms.php', 'admin')); ?>" target="_blank">View Public Page</a>
 </div>
 <?php show_flash(); ?>
 <?php if (!$ready): ?><div class="msg err">Database is not ready. Import database.sql first.</div><?php endif; ?>
 
 <details class="card add-panel package-add-panel" id="add-term" hidden>
   <summary>Add Terms</summary>
-  <form class="form-grid" method="POST" action="actions.php">
+  <form class="form-grid" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
     <input type="hidden" name="action" value="save_term">
-    <input type="hidden" name="back" value="terms.php">
+    <input type="hidden" name="back" value="<?php echo h(app_url('terms.php', 'admin')); ?>">
 	    <label>Title<input name="title" required placeholder="Cancellation"></label>
 	    <label>Order<input name="display_order" type="number" value="10"></label>
 	    <label class="check-label"><input type="checkbox" name="is_booking_required"> Booking check</label>
@@ -100,7 +100,7 @@ admin_page_start('Terms & Conditions', 'terms');
 
 <section class="card">
   <div class="package-toolbar" id="termsToolbar">
-    <form class="package-search" method="GET" action="terms.php" id="termSearch">
+    <form class="package-search" method="GET" action="<?php echo h(app_url('terms.php', 'admin')); ?>" id="termSearch">
       <label class="sr-only" for="termSearchInput">Search terms</label>
       <input id="termSearchInput" name="q" value="<?php echo h($search); ?>" placeholder="Search terms">
       <button class="icon-btn search-icon" type="submit" aria-label="Search terms" title="Search terms"></button>
@@ -145,7 +145,7 @@ admin_page_start('Terms & Conditions', 'terms');
     });
     termTableBody.classList.add('is-loading');
     try {
-      const response = await fetch('terms.php?' + params.toString(), {
+      const response = await fetch('<?php echo app_url('terms.php', 'admin'); ?>?' + params.toString(), {
         headers: { 'X-Requested-With': 'fetch' }
       });
       if (!response.ok) throw new Error('Search failed');
@@ -153,7 +153,7 @@ admin_page_start('Terms & Conditions', 'terms');
       termTableBody.innerHTML = data.html;
       const cleanParams = new URLSearchParams();
       if (termSearchInput.value) cleanParams.set('q', termSearchInput.value);
-      window.history.replaceState({}, '', cleanParams.toString() ? 'terms.php?' + cleanParams.toString() : 'terms.php');
+      window.history.replaceState({}, '', cleanParams.toString() ? '<?php echo app_url('terms.php', 'admin'); ?>?' + cleanParams.toString() : '<?php echo app_url('terms.php', 'admin'); ?>');
     } catch (error) {
       termSearch.submit();
     } finally {

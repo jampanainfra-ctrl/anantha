@@ -7,62 +7,22 @@ $rating = 5;
 $message = '';
 $error = '';
 
-function seed_default_reviews(): void
-{
-    $count = (int) db()->query("SELECT COUNT(*) FROM reviews WHERE status = 'published'")->fetchColumn();
-    if ($count > 0) {
-        return;
-    }
-
-    $defaults = [
-        [
-            'Sravani K.',
-            'Wedding',
-            5,
-            'The lawn felt private, fresh and beautifully maintained. Our wedding evening looked elegant, and the team helped our families settle in comfortably.',
-        ],
-        [
-            'Rahul Varma',
-            'Reception',
-            5,
-            'A peaceful venue with enough space for guests, food counters and photos. The one-event-per-day approach made everything feel relaxed.',
-        ],
-        [
-            'Mounika Reddy',
-            'Birthday Celebration',
-            5,
-            'We hosted a family birthday here and loved the clean rooms, open lawn and warm support. It felt personal from start to finish.',
-        ],
-        [
-            'Kiran & Deepthi',
-            'Engagement',
-            4,
-            'The location was easy for our guests, and the outdoor setup looked lovely in the evening lights. A very pleasant experience.',
-        ],
-    ];
-
-    $stmt = db()->prepare("INSERT INTO reviews (client_name, event_type, rating, review_text, status, created_by) VALUES (?, ?, ?, ?, 'published', 'admin')");
-    foreach ($defaults as $review) {
-        $stmt->execute($review);
-    }
-}
-
-if ($ready) {
-    seed_default_reviews();
-}
-
 if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim(strip_tags($_POST['client_name'] ?? ''));
     $event = trim(strip_tags($_POST['event_type'] ?? ''));
     $rating = max(1, min(5, (int) ($_POST['rating'] ?? 5)));
     $text = trim(strip_tags($_POST['review_text'] ?? ''));
 
-    if ($name === '' || $text === '') {
+    $spacingError=required_leading_space_error($_POST,['client_name'=>'Name','review_text'=>'Review']);
+    if ($spacingError !== '') {
+        $error=$spacingError;
+    } elseif ($name === '' || $text === '') {
         $error = 'Please add your name and review.';
     } else {
         $stmt = db()->prepare("INSERT INTO reviews (client_name, event_type, rating, review_text, status, created_by) VALUES (?, ?, ?, ?, 'pending', 'public')");
         $stmt->execute([$name, $event, $rating, $text]);
-        $message = 'Thank you. Your review is sent to Anantha team for approval.';
+        notify_public_review((int)db()->lastInsertId(), $name, $rating);
+        $message = 'Thank you. Your feedback has been sent to the Anantha team.';
         $name = $event = $text = '';
         $rating = 5;
     }
@@ -70,19 +30,11 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $googleReviewData = google_reviews_data();
 $googleReviews = $googleReviewData['reviews'] ?? [];
-$localReviews = [];
-if ($ready) {
-    $localReviews = db()->query("SELECT * FROM reviews WHERE status = 'published' ORDER BY created_at DESC, id DESC")->fetchAll();
-}
-$reviews = array_merge($googleReviews, $localReviews);
-$mainReviews = array_slice($reviews, 0, 3);
-
-$reviewCount = count($reviews);
-$averageRating = 0;
-if ($reviewCount > 0) {
-    $totalRating = array_sum(array_map(static fn ($review) => (int) $review['rating'], $reviews));
-    $averageRating = round($totalRating / $reviewCount, 1);
-}
+$reviews = $googleReviews;
+$mainReviews = $reviews;
+$googleReviewLink = GOOGLE_REVIEW_URL !== '' ? GOOGLE_REVIEW_URL : ($googleReviewData['url'] ?? '');
+$reviewCount = (int)($googleReviewData['total'] ?? 0);
+$averageRating = (float)($googleReviewData['rating'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -90,13 +42,13 @@ if ($reviewCount > 0) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reviews | <?php echo SITE_NAME; ?></title>
-<link rel="icon" href="assets/logo.jpeg">
+<link rel="icon" href="<?php echo h(app_url('assets/logo.jpeg', '')); ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--deep:#142f28;--forest:#20483f;--leaf:#2e6b58;--gold:#d9a050;--cream:#f8f3e8;--soft:#fffaf0;--ink:#1b2a24;--muted:#63736c;--line:rgba(20,47,40,.13);--shadow:0 24px 60px -34px rgba(20,47,40,.5)}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#fffaf0 0,#f8f3e8 44%,#eef5ef 100%);color:var(--ink);overflow-x:hidden}body:before{content:"";position:fixed;inset:0;background:linear-gradient(110deg,rgba(20,47,40,.84),rgba(20,47,40,.22)),url('assets/gallery-celebration-evening-optimized.jpg') center/cover no-repeat;clip-path:polygon(0 0,100% 0,100% 390px,0 560px);z-index:-2}body:after{content:"";position:fixed;inset:0;background:radial-gradient(circle at 16% 22%,rgba(217,160,80,.28),transparent 24%),radial-gradient(circle at 82% 10%,rgba(255,250,240,.32),transparent 18%);z-index:-1;pointer-events:none}a{text-decoration:none;color:inherit}.container,.wrap{width:min(1180px,calc(100% - 36px));margin:auto}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#fffaf0 0,#f8f3e8 44%,#eef5ef 100%);color:var(--ink);overflow-x:hidden}body:before{content:"";position:fixed;inset:0;background:linear-gradient(110deg,rgba(20,47,40,.84),rgba(20,47,40,.22)),url('<?php echo h(app_url('assets/gallery-celebration-evening-optimized.jpg')); ?>') center/cover no-repeat;clip-path:polygon(0 0,100% 0,100% 390px,0 560px);z-index:-2}body:after{content:"";position:fixed;inset:0;background:radial-gradient(circle at 16% 22%,rgba(217,160,80,.28),transparent 24%),radial-gradient(circle at 82% 10%,rgba(255,250,240,.32),transparent 18%);z-index:-1;pointer-events:none}a{text-decoration:none;color:inherit}.container,.wrap{width:min(1180px,calc(100% - 36px));margin:auto}
 header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition:background .4s ease,padding .4s ease,box-shadow .4s ease}header.scrolled{background:rgba(23,51,43,.92);backdrop-filter:blur(10px);padding:12px 0;box-shadow:0 10px 30px -20px rgba(0,0,0,.4)}.nav{display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{display:flex;align-items:center;gap:10px}.brand img{height:44px;width:44px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(228,218,195,.28)}.brand span{font-family:'Inter',sans-serif;letter-spacing:.04em;font-size:1.08rem;color:#e4dac3}.nav-links{display:flex;gap:24px;list-style:none;margin:0;padding:0}.nav-links a{color:#e4dac3;font-size:.88rem;font-weight:500;position:relative;padding-bottom:4px}.nav-links a:after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--gold);transition:width .3s ease}.nav-links a:hover:after,.nav-links a.active:after{width:100%}.menu-toggle{display:none;width:44px;height:44px;border-radius:50%;border:1px solid rgba(228,218,195,.32);background:rgba(23,51,43,.28);color:#e4dac3;cursor:pointer;place-items:center}.menu-toggle span,.menu-toggle span:before,.menu-toggle span:after{display:block;width:19px;height:2px;border-radius:2px;background:currentColor;content:"";transition:transform .3s ease}.menu-toggle span:before{transform:translateY(-7px)}.menu-toggle span:after{transform:translateY(5px)}.menu-toggle.is-open span{background:transparent}.menu-toggle.is-open span:before{transform:translateY(2px) rotate(45deg)}.menu-toggle.is-open span:after{transform:translateY(0) rotate(-45deg)}.menu-close-row{display:none}.menu-close{width:44px;height:44px;border-radius:50%;border:1px solid rgba(228,218,195,.32);background:rgba(255,255,255,.06);color:#e4dac3;font-size:1.7rem;line-height:1;cursor:pointer}.nav-backdrop{position:fixed;inset:0;z-index:99;background:rgba(8,28,23,.54);opacity:0;pointer-events:none;transition:opacity .3s ease}.nav-backdrop.open{opacity:1;pointer-events:auto}
 .hero{padding:132px 0 54px;color:#fff}.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:34px;align-items:end}.eyebrow{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:#f1cf8f;font-weight:700}.hero h1{font-family:'Inter',sans-serif;font-size:clamp(2.4rem,6vw,5rem);line-height:1;margin:10px 0 16px}.hero p{max-width:660px;color:rgba(255,255,255,.86);font-size:1.06rem}.score-card{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.24);border-radius:8px;padding:24px;backdrop-filter:blur(14px);box-shadow:0 24px 50px -30px rgba(0,0,0,.55)}.score-card strong{display:block;font-family:'Inter',sans-serif;font-size:2.7rem;color:#fff;line-height:1}.score-card span{display:block;color:#f4dcaa;margin-top:8px}.score-stars{color:#f4c16b;letter-spacing:.08em;margin-top:14px}
 .content{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start;padding:26px 0 76px}.review-section-title{margin:0 0 16px;color:#fff;font-size:clamp(1.8rem,3vw,2.65rem);line-height:1}.reviews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.reviews .review-card:first-of-type{grid-column:1/-1}.review-card,.review-form,.empty{background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.86);border-radius:8px;box-shadow:var(--shadow)}.review-card{padding:24px;position:relative;overflow:hidden;transition:transform .25s ease,box-shadow .25s ease}.review-card:before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--gold),var(--leaf))}.review-card:hover{transform:translateY(-5px);box-shadow:0 30px 66px -38px rgba(20,47,40,.7)}.stars{color:var(--gold);font-size:1rem;letter-spacing:.08em;font-weight:800}.quote{font-family:'Inter',sans-serif;font-size:1.28rem;line-height:1.5;color:var(--deep);margin:18px 0 22px}.person{display:flex;align-items:center;gap:12px}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--deep),var(--leaf));color:#fff;font-weight:800}.person strong{display:block;color:var(--deep)}.person span{display:block;color:var(--muted);font-size:.9rem;margin-top:2px}.review-form{padding:26px;position:sticky;top:96px;background:var(--deep);color:#e4dac3}.review-form h2{font-family:'Inter',sans-serif;font-size:1.75rem;margin:0 0 8px}.review-form p{color:rgba(228,218,195,.78);margin:0 0 18px}.review-form label{display:block;font-size:.8rem;font-weight:700;color:var(--gold);margin-top:13px}.review-form input,.review-form select,.review-form textarea{width:100%;margin-top:6px;border:1px solid rgba(228,218,195,.22);border-radius:8px;padding:12px 13px;background:rgba(255,255,255,.07);color:#fff;font:inherit}.review-form select option{color:var(--ink)}.review-form textarea{resize:vertical;min-height:118px}.review-form input::placeholder,.review-form textarea::placeholder{color:rgba(228,218,195,.48)}.btn{border:0;border-radius:999px;background:var(--gold);color:#261b10;padding:12px 20px;text-decoration:none;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.review-form .btn{width:100%;margin-top:18px}.btn:disabled{opacity:.55;cursor:not-allowed}.msg{padding:12px 14px;border-radius:8px;margin-bottom:12px;font-size:.9rem}.ok{background:rgba(46,107,88,.34);color:#e6fff3}.err{background:rgba(189,69,61,.28);color:#ffe0dc}.empty{padding:24px;color:var(--muted)}
@@ -118,21 +70,19 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
         <p>Read what families loved about hosting their weddings, receptions and intimate gatherings at Anantha Event Lawns.</p>
       </div>
       <aside class="score-card">
-        <strong><?php echo $averageRating > 0 ? h((string) $averageRating) : '5.0'; ?></strong>
-        <span>Average rating from <?php echo $reviewCount; ?> published reviews</span>
-        <div class="score-stars" aria-label="5 star rating"><?php echo str_repeat('&#9733;', 5); ?></div>
+        <strong><?php echo $averageRating > 0 ? h((string) $averageRating) : '&mdash;'; ?></strong>
+        <span><?php echo $reviewCount > 0 ? h((string)$reviewCount).' Google Maps reviews' : 'Read our reviews on Google Maps'; ?></span>
+        <?php if($averageRating > 0): ?><div class="score-stars" aria-label="<?php echo h((string)$averageRating); ?> out of 5 stars"><?php echo str_repeat('&#9733;', (int)round($averageRating)); ?></div><?php endif; ?>
       </aside>
     </div>
   </section>
 
 	  <section class="wrap content">
 	    <div class="review-column">
-	      <h2 class="review-section-title">Main reviews</h2>
+	      <h2 class="review-section-title">Google Maps reviews</h2>
 	      <div class="reviews">
-	        <?php if (!$ready): ?>
-	          <div class="empty">Import <strong>database.sql</strong> to show live reviews.</div>
-	        <?php elseif (!$reviews): ?>
-	          <div class="empty">Published reviews will appear here after approval.</div>
+	        <?php if (!$reviews): ?>
+	          <div class="empty">Read our guests' experiences on <a href="<?php echo h($googleReviewLink); ?>" target="_blank" rel="noopener">Google Maps</a>.</div>
 	        <?php endif; ?>
 
 	      <?php foreach ($mainReviews as $review): ?>
@@ -145,30 +95,31 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
           <div class="person">
             <div class="avatar" aria-hidden="true"><?php echo h(strtoupper(substr((string) $review['client_name'], 0, 1))); ?></div>
 	            <div>
-	              <strong><?php echo h($review['client_name']); ?></strong>
+	              <strong><?php if(!empty($review['author_url'])): ?><a class="google-author-link" href="<?php echo h($review['author_url']); ?>" target="_blank" rel="noopener"><?php echo h($review['client_name']); ?></a><?php else: ?><?php echo h($review['client_name']); ?><?php endif; ?></strong>
 	              <span><?php echo h($review['event_type'] ?: 'Celebration'); ?></span>
-	              <?php if ($isGoogleReview): ?><em class="source-badge">Google Maps</em><?php endif; ?>
+	              <?php if ($isGoogleReview): ?><a class="source-badge google-maps-attribution" translate="no" href="<?php echo h($review['url'] ?: $googleReviewLink); ?>" target="_blank" rel="noopener">Google Maps</a><?php endif; ?>
 	            </div>
           </div>
 	        </article>
 	      <?php endforeach; ?>
 	      </div>
+	      <?php if($reviews): ?><p class="google-review-order">A selection of Google Maps reviews, ordered by relevance.</p><?php endif; ?>
 	    </div>
 
     <form class="review-form" method="POST">
-      <h2>Share your review</h2>
-      <p>Your note goes to the team first, then appears here after approval.</p>
+      <h2>Share feedback with the venue</h2>
+      <p>Your feedback is shared privately with the venue. To publish a Google Maps review, use the link below.</p>
 	      <div class="google-card">
 	        <strong>Google reviews</strong>
 	        <?php if ($googleReviewData['configured'] && !$googleReviewData['error']): ?>
-	          <p>Google Maps reviews sync automatically here.</p>
+	          <p>Read a selection of reviews from Google Maps.</p>
 	        <?php elseif ($googleReviewData['configured'] && $googleReviewData['error']): ?>
-	          <p>Google review sync is connected but needs attention.</p>
+	          <p>Read our guests' reviews directly on Google Maps.</p>
 	        <?php else: ?>
-	          <p>Google Maps reviews can appear here after the profile is connected.</p>
+	          <p>Read our guests' reviews directly on Google Maps.</p>
 	        <?php endif; ?>
 	        <?php $googleReviewLink = GOOGLE_REVIEW_URL !== '' ? GOOGLE_REVIEW_URL : ($googleReviewData['url'] ?? ''); ?>
-	        <?php if ($googleReviewLink !== ''): ?><a class="btn" href="<?php echo h($googleReviewLink); ?>" target="_blank" rel="noopener">Open Google Maps</a><?php endif; ?>
+	        <?php if ($googleReviewLink !== ''): ?><a class="btn" href="<?php echo h(app_url((string)($googleReviewLink), "")); ?>" target="_blank" rel="noopener">Open Google Maps</a><?php endif; ?>
 	      </div>
       <?php if ($message): ?><div class="msg ok"><?php echo h($message); ?></div><?php endif; ?>
       <?php if ($error): ?><div class="msg err"><?php echo h($error); ?></div><?php endif; ?>
@@ -183,7 +134,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
         </div>
       </label>
       <label>Review<textarea name="review_text" rows="5" required placeholder="Tell us what made your celebration special"><?php echo h($text); ?></textarea></label>
-      <button class="btn" type="submit" <?php echo !$ready ? 'disabled' : ''; ?>>Submit Review</button>
+      <button class="btn" type="submit" <?php echo !$ready ? 'disabled' : ''; ?>>Send feedback</button>
     </form>
   </section>
 </main>

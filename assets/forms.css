@@ -1,3 +1,11 @@
 .required-mark{display:inline!important;color:#c43232!important;font-weight:800!important;line-height:inherit}
 input::placeholder,textarea::placeholder{color:#69766e;opacity:1;font-weight:400}
 @media(prefers-color-scheme:dark){input::placeholder,textarea::placeholder{color:#87978c}}
+
+/* Compact, accessible field-level validation messages. */
+.form-field-error,.field-warning.err{color:#b5302b!important;font-size:12px!important;font-weight:400!important;line-height:1.5!important;letter-spacing:normal!important;text-transform:none!important;margin:6px 0 0!important;padding:0!important;background:none!important;border:0!important;border-radius:0!important;max-width:100%;overflow-wrap:anywhere}
+.form-field-error{display:block!important}
+.form-field-error[hidden]{display:none!important}
+.field-warning.err[data-inline-duplicate=true]{display:none!important}
+.has-field-error:not([type=checkbox]):not([type=radio]){border-color:#c44d43!important}
+input[type=checkbox].has-field-error,input[type=radio].has-field-error{outline:1px solid #c44d43;outline-offset:2px}

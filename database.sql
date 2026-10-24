@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS event_bookings (
   referred_by_reference VARCHAR(80) DEFAULT NULL,
   client_name VARCHAR(160) NOT NULL,
   phone VARCHAR(30) NOT NULL,
+  returning_customer_booking_id INT DEFAULT NULL,
   whatsapp_number VARCHAR(30) DEFAULT NULL,
   email VARCHAR(160) DEFAULT NULL,
   date_of_birth DATE DEFAULT NULL,

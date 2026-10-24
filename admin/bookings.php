@@ -41,13 +41,13 @@ if ($ready) {
 
 <section class="card">
   <div class="booking-grid-toolbar">
-    <form class="search-bar compact-search" method="GET" action="bookings.php">
+    <form class="search-bar compact-search" method="GET" action="<?php echo h(app_url('bookings.php', 'admin')); ?>">
       <input type="hidden" name="filter" value="<?php echo h($filter); ?>">
       <label><span class="sr-only">Search booking</span><input name="q" value="<?php echo h($search); ?>" placeholder="Search booking"></label>
       <button class="btn gold">Search</button>
-      <?php if ($search !== ''): ?><a class="btn" href="bookings.php?filter=<?php echo h($filter); ?>">Clear</a><?php endif; ?>
+      <?php if ($search !== ''): ?><a class="btn" href="<?php echo h(app_url('bookings.php', 'admin')); ?>?filter=<?php echo h($filter); ?>">Clear</a><?php endif; ?>
     </form>
-    <a class="btn gold" href="booking-form.php">Add New Booking</a>
+    <a class="btn gold" href="<?php echo h(app_url('booking-form.php', 'admin')); ?>">Add New Booking</a>
   </div>
   <div class="filters">
     <?php foreach (['active'=>'Current','pending'=>'Need follow up','upcoming'=>'Today & future','over'=>'Past events'] as $key => $label): ?>
@@ -104,7 +104,7 @@ if ($ready) {
         <td>
           <span class="badge <?php echo h($booking['booking_status']); ?>"><?php echo h(status_label($booking['booking_status'])); ?></span>
         </td>
-        <td><a class="btn gold grid-manage" href="booking-form.php?id=<?php echo (int) $booking['id']; ?>">Manage</a></td>
+        <td><a class="btn gold grid-manage" href="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $booking['id']; ?>">Manage</a></td>
       </tr>
     <?php endforeach; ?>
     <?php if (!$bookings): ?>

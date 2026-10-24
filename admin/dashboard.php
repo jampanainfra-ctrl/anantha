@@ -87,21 +87,22 @@ $calendarOffset = ((int) $calendarFirstDay->format('N')) - 1;
 $calendarPrev = $monthDate->modify('-1 month');
 $calendarNext = $monthDate->modify('+1 month');
 ?>
+<header class="dashboard-page-heading"><div><span class="eyebrow-text">ANANTHA ADMINISTRATION</span><h2>Dashboard</h2></div><span class="dashboard-date"><?php echo h($today->format('l, d F Y')); ?></span></header>
 <section class="dashboard-top">
   <section class="dashboard-hero">
     <div>
       <span class="eyebrow-text">Today at Anantha</span>
       <h1><?php echo h($greeting); ?>, <?php echo h($admin['name']); ?></h1>
-      <p><?php echo h((new DateTimeImmutable())->format('l, d F Y')); ?>. Keep bookings, payments, availability, and reviews moving from one calm workspace.</p>
+      <p>Here’s your venue at a glance. Keep every celebration on track.</p>
       <div class="hero-pulse">
-        <span><strong><?php echo h((string) $followUpCount); ?></strong> follow ups</span>
+        <span><strong><?php echo h((string) $followUpCount); ?></strong> follow-ups</span>
         <span><strong><?php echo h((string) $fyBookingTotal); ?></strong> FY bookings</span>
         <span><strong><?php echo h((string) $fyConfirmedTotal); ?></strong> booked</span>
       </div>
     </div>
     <div class="hero-actions">
-      <a class="btn gold" href="booking-form.php"><span aria-hidden="true">+</span> New Booking</a>
-      <a class="btn" href="bookings.php">Bookings <span aria-hidden="true">&rarr;</span></a>
+      <a class="btn gold" href="<?php echo h(app_url('booking-form.php', 'admin')); ?>"><span aria-hidden="true">+</span> New Booking</a>
+      <a class="btn" href="<?php echo h(app_url('bookings.php', 'admin')); ?>">Bookings <span aria-hidden="true">&rarr;</span></a>
     </div>
   </section>
 
@@ -109,8 +110,8 @@ $calendarNext = $monthDate->modify('+1 month');
     <div class="calendar-title">
       <div><span class="eyebrow-text">Availability</span><h2><?php echo h($monthDate->format('F Y')); ?></h2></div>
       <div class="calendar-arrows">
-        <a href="dashboard.php?fy=<?php echo (int) $fyStart; ?>&month=<?php echo h($calendarPrev->format('Y-m')); ?>" aria-label="Previous month">&lsaquo;</a>
-        <a href="dashboard.php?fy=<?php echo (int) $fyStart; ?>&month=<?php echo h($calendarNext->format('Y-m')); ?>" aria-label="Next month">&rsaquo;</a>
+        <a href="<?php echo h(app_url('dashboard.php', 'admin')); ?>?fy=<?php echo (int) $fyStart; ?>&month=<?php echo h($calendarPrev->format('Y-m')); ?>" aria-label="Previous month">&lsaquo;</a>
+        <a href="<?php echo h(app_url('dashboard.php', 'admin')); ?>?fy=<?php echo (int) $fyStart; ?>&month=<?php echo h($calendarNext->format('Y-m')); ?>" aria-label="Next month">&rsaquo;</a>
       </div>
     </div>
     <div class="mini-month compact-calendar">
@@ -125,11 +126,11 @@ $calendarNext = $monthDate->modify('+1 month');
         ?>
         <?php if ($dayBookings): ?>
           <?php $booking = $dayBookings[0]; ?>
-	          <a class="mini-day booked <?php echo h($booking['booking_status']); ?> <?php echo $isPast ? 'past' : ''; ?>" href="booking-form.php?id=<?php echo (int) $booking['id']; ?>" title="<?php echo h($booking['client_name'] . ' - ' . status_label($booking['booking_status'])); ?>"><strong><?php echo $day; ?></strong><small><?php echo h(substr(status_label($booking['booking_status']), 0, 1)); ?></small></a>
+	          <a class="mini-day booked <?php echo $dateValue === $today->format('Y-m-d') ? 'is-today' : ''; ?> <?php echo h($booking['booking_status']); ?> <?php echo $isPast ? 'past' : ''; ?>" href="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $booking['id']; ?>" title="<?php echo h($booking['client_name'] . ' - ' . status_label($booking['booking_status'])); ?>"><strong><?php echo $day; ?></strong><small><?php echo h(substr(status_label($booking['booking_status']), 0, 1)); ?></small></a>
 	        <?php elseif ($isPast): ?>
 	          <span class="mini-day unavailable past"><strong><?php echo $day; ?></strong></span>
         <?php else: ?>
-          <a class="mini-day available" href="../availability.php?month=<?php echo h($selectedMonth); ?>&date=<?php echo h($dateValue); ?>" target="_blank" title="Available"><strong><?php echo $day; ?></strong><small>A</small></a>
+          <a class="mini-day available <?php echo $dateValue === $today->format('Y-m-d') ? 'is-today' : ''; ?>" href="<?php echo h(app_url('../availability.php', 'admin')); ?>?month=<?php echo h($selectedMonth); ?>&date=<?php echo h($dateValue); ?>" target="_blank" title="Available"><strong><?php echo $day; ?></strong><small>A</small></a>
         <?php endif; ?>
       <?php endfor; ?>
     </div>
@@ -138,13 +139,13 @@ $calendarNext = $monthDate->modify('+1 month');
 </section>
 
 <section class="dashboard-brief">
-  <a href="bookings.php?filter=pending"><span>Needs attention</span><strong><?php echo h((string) $stats['pending']); ?> enquiries</strong></a>
+  <a href="<?php echo h(app_url('bookings.php', 'admin')); ?>?filter=pending"><span>Needs attention</span><strong><?php echo h((string) $stats['pending']); ?> enquiries</strong></a>
   <?php if ($nextEvent): ?>
-    <a href="booking-form.php?id=<?php echo (int) $nextEvent['id']; ?>"><span>Next event</span><strong><?php echo h(date('d M', strtotime($nextEvent['event_date']))); ?> - <?php echo h($nextEvent['client_name']); ?></strong></a>
+    <a href="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $nextEvent['id']; ?>"><span>Next event</span><strong><?php echo h(date('d M', strtotime($nextEvent['event_date']))); ?> - <?php echo h($nextEvent['client_name']); ?></strong></a>
   <?php else: ?>
-    <a href="booking-form.php"><span>Next event</span><strong>Add upcoming booking</strong></a>
+    <a href="<?php echo h(app_url('booking-form.php', 'admin')); ?>"><span>Next event</span><strong>Add upcoming booking</strong></a>
   <?php endif; ?>
-  <a href="reviews.php"><span>Reviews queue</span><strong><?php echo h((string) $stats['reviews']); ?> waiting</strong></a>
+  <a href="<?php echo h(app_url('reviews.php', 'admin')); ?>"><span>Reviews queue</span><strong><?php echo h((string) $stats['reviews']); ?> waiting</strong></a>
 </section>
 
 <?php show_flash(); ?>
@@ -155,7 +156,7 @@ $calendarNext = $monthDate->modify('+1 month');
     <span class="eyebrow-text">Financial year overview</span>
     <h2>FY <?php echo h((string) $fyStart); ?>-<?php echo h(substr((string) $fyEnd, -2)); ?></h2>
   </div>
-  <form class="dashboard-filter" method="GET" action="dashboard.php">
+  <form class="dashboard-filter" method="GET" action="<?php echo h(app_url('dashboard.php', 'admin')); ?>">
     <label>Financial year
       <select name="fy">
         <?php for ($year = $defaultFyStart + 1; $year >= $defaultFyStart - 5; $year--): ?>
@@ -169,20 +170,20 @@ $calendarNext = $monthDate->modify('+1 month');
 </section>
 
 <section class="dashboard-stats">
-  <a class="dash-stat warning" href="bookings.php?filter=pending"><span>Need follow up</span><strong><?php echo h((string) $stats['pending']); ?></strong><small>Pending enquiries</small></a>
-  <a class="dash-stat success" href="bookings.php?filter=upcoming"><span>Upcoming events</span><strong><?php echo h((string) $stats['upcoming']); ?></strong><small>Today and future</small></a>
-  <a class="dash-stat money" href="bookings.php"><span>Verified payments</span><strong>Rs <?php echo h(number_format((float) $stats['revenue'])); ?></strong><small>Total received</small></a>
-  <a class="dash-stat danger" href="reviews.php"><span>Reviews waiting</span><strong><?php echo h((string) $stats['reviews']); ?></strong><small>Awaiting approval</small></a>
+  <a class="dash-stat warning" href="<?php echo h(app_url('bookings.php', 'admin')); ?>?filter=pending"><span>Need follow up</span><strong><?php echo h((string) $stats['pending']); ?></strong><small>Pending enquiries</small></a>
+  <a class="dash-stat success" href="<?php echo h(app_url('bookings.php', 'admin')); ?>?filter=upcoming"><span>Upcoming events</span><strong><?php echo h((string) $stats['upcoming']); ?></strong><small>Today and future</small></a>
+  <a class="dash-stat money" href="<?php echo h(app_url('bookings.php', 'admin')); ?>"><span>Verified payments</span><strong>Rs <?php echo h(number_format((float) $stats['revenue'])); ?></strong><small>Total received</small></a>
+  <a class="dash-stat danger" href="<?php echo h(app_url('reviews.php', 'admin')); ?>"><span>Reviews waiting</span><strong><?php echo h((string) $stats['reviews']); ?></strong><small>Awaiting approval</small></a>
 </section>
 
 <section class="dashboard-analysis">
   <div class="card year-graph-card">
-    <div class="section-head graph-heading"><div><h2>Yearly Bookings</h2><p>Monthly bookings across the selected financial year.</p></div><div class="graph-legend"><span><i class="total"></i>Total</span><span><i class="confirmed"></i>Booked</span></div></div>
+    <div class="section-head graph-heading"><div><h2>Booking activity</h2><p>Monthly bookings across the selected financial year.</p></div><div class="graph-legend"><span><i class="total"></i>Total</span><span><i class="confirmed"></i>Booked</span></div></div>
     <?php if ($fyBookingTotal > 0): ?>
       <div class="year-chart" aria-label="Monthly booking graph">
         <?php foreach ($yearlyMonths as $yearMonth): ?>
           <?php $totalHeight = (int) round(($yearMonth['total'] / $yearGraphMax) * 100); $confirmedHeight = (int) round(($yearMonth['confirmed'] / $yearGraphMax) * 100); ?>
-          <div class="chart-month">
+          <div class="chart-month" title="<?php echo h($yearMonth['label'] . ': ' . $yearMonth['total'] . ' enquiries, ' . $yearMonth['confirmed'] . ' booked'); ?>">
             <div class="chart-value"><?php echo (int) $yearMonth['total']; ?></div>
             <div class="chart-bars"><span class="bar total" style="height:<?php echo $yearMonth['total'] > 0 ? max(3, $totalHeight) : 0; ?>%"></span><span class="bar confirmed" style="height:<?php echo $yearMonth['confirmed'] > 0 ? max(3, $confirmedHeight) : 0; ?>%"></span></div>
             <strong><?php echo h($yearMonth['label']); ?></strong>
@@ -206,15 +207,15 @@ $calendarNext = $monthDate->modify('+1 month');
   </div>
 </section>
 <section class="dashboard-actions">
-  <a href="booking-form.php"><span>+</span><strong>Create booking</strong><small>Add customer, event, quote, and package details.</small></a>
-  <a href="bookings.php?filter=upcoming"><span>&rarr;</span><strong>Check upcoming</strong><small>Review active events and balances before the day.</small></a>
-  <a href="../availability.php" target="_blank"><span>*</span><strong>Public calendar</strong><small>Open the customer-facing availability view.</small></a>
-  <a href="gallery.php"><span>#</span><strong>Update gallery</strong><small>Keep venue photos and categories fresh.</small></a>
+  <a href="<?php echo h(app_url('booking-form.php', 'admin')); ?>"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><strong>Create booking</strong><small>Add customer, event, quote, and package details.</small></a>
+  <a href="<?php echo h(app_url('bookings.php', 'admin')); ?>?filter=upcoming"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span><strong>Check upcoming</strong><small>Review active events and balances before the day.</small></a>
+  <a href="<?php echo h(app_url('../availability.php', 'admin')); ?>" target="_blank"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-12 4h2"/></svg></span><strong>Public calendar</strong><small>Open the customer-facing availability view.</small></a>
+  <a href="<?php echo h(app_url('gallery.php', 'admin')); ?>"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1"/><path d="m3 17 5-5 4 4 3-3 6 6"/></svg></span><strong>Update gallery</strong><small>Keep venue photos and categories fresh.</small></a>
 </section>
 <section class="card dashboard-leads">
   <div class="section-head">
-    <div><h2>Active Leads</h2><p>Latest enquiries and upcoming bookings requiring attention.</p></div>
-    <a class="btn" href="bookings.php">View All Leads</a>
+    <div><h2>Active leads</h2><p>Latest enquiries and upcoming bookings requiring attention.</p></div>
+    <a class="btn" href="<?php echo h(app_url('bookings.php', 'admin')); ?>">View all leads</a>
   </div>
   <div class="table-wrap">
     <table class="leads-table">
@@ -228,7 +229,7 @@ $calendarNext = $monthDate->modify('+1 month');
             <td><span class="badge <?php echo h($lead['booking_status']); ?>"><?php echo h(status_label($lead['booking_status'])); ?></span></td>
             <td><span class="badge <?php echo h($lead['payment_status']); ?>"><?php echo h(payment_statuses()[$lead['payment_status']] ?? status_label($lead['payment_status'])); ?></span></td>
             <td><?php echo h(date('d M Y', strtotime($lead['created_at']))); ?><br><span class="muted-text"><?php echo h(ucfirst($lead['created_by'])); ?></span></td>
-            <td><a class="btn gold" href="booking-form.php?id=<?php echo (int) $lead['id']; ?>">Open</a></td>
+            <td><a class="btn gold" href="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $lead['id']; ?>">Open</a></td>
           </tr>
         <?php endforeach; ?>
         <?php if (!$dashboardLeads): ?><tr><td colspan="7">No active leads found.</td></tr><?php endif; ?>

@@ -1,0 +1,6 @@
+/* Blog listing only. The rest of the application keeps its existing images. */
+body .hero{background-image:linear-gradient(90deg,rgba(20,47,40,.92),rgba(20,47,40,.5)),url('blogs/lawn-sunset.jpg')}
+body .post{display:flex;flex-direction:column;align-items:stretch;padding:0;overflow:hidden;justify-content:flex-start}
+.post-cover{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;object-position:center 38%;background:#142f28}
+body .post h2{padding:20px 22px 24px}
+@media(min-width:600px) and (max-width:920px){body .blog-list .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

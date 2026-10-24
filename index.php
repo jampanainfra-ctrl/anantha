@@ -14,12 +14,6 @@ $heroWhatsappLink = 'https://wa.me/' . WHATSAPP_NUMBER . '?text=' . rawurlencode
 
 if ($googleReviews) {
     $homeReviews = $googleReviews;
-} elseif (db_ready()) {
-    try {
-        $homeReviews = db()->query("SELECT client_name, event_type, rating, review_text, '' AS source FROM reviews WHERE status = 'published' ORDER BY created_at DESC, id DESC LIMIT 8")->fetchAll();
-    } catch (Throwable $e) {
-        $homeReviews = [];
-    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire'])) {
@@ -50,7 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
     $reviewEvent = trim(strip_tags($_POST['review_event'] ?? ''));
     $reviewText = trim(strip_tags($_POST['review_text'] ?? ''));
 
-    if ($reviewName === '' || $reviewText === '') {
+    $spacingError=required_leading_space_error($_POST,['review_name'=>'Name','review_text'=>'Review']);
+    if ($spacingError !== '') {
+        $reviewError=$spacingError;
+    } elseif ($reviewName === '' || $reviewText === '') {
         $reviewError = 'Please add your name and review.';
     } else {
         $reviewSubmitted = true;
@@ -64,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anantha Event Lawns | Kommadi, Madhurawada, Visakhapatnam</title>
 <meta name="description" content="Anantha Event Lawns is a private event lawn in Kommadi, Madhurawada, Visakhapatnam for weddings, receptions, ceremonies, birthdays, family celebrations, and corporate gatherings up to 300 guests.">
-<link rel="icon" href="assets/logo.jpeg">
-<link rel="preload" as="image" href="assets/hero-nature-event-optimized.jpg" fetchpriority="high">
+<link rel="icon" href="<?php echo h(app_url('assets/logo.jpeg', '')); ?>">
+<link rel="preload" as="image" href="<?php echo h(app_url('assets/hero-nature-event-optimized.jpg', '')); ?>" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -357,7 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
     background:
       linear-gradient(180deg, rgba(23,51,43,0.10), rgba(23,51,43,0.86)),
       linear-gradient(90deg, rgba(23,51,43,0.72), rgba(23,51,43,0.24) 45%, rgba(23,51,43,0.62)),
-      url('assets/hero-nature-event-optimized.jpg') center/cover no-repeat,
+      url('<?php echo h(app_url('assets/hero-nature-event-optimized.jpg')); ?>') center/cover no-repeat,
       radial-gradient(circle at 22% 24%, rgba(217,160,80,0.24) 0 10%, transparent 28%),
       radial-gradient(circle at 78% 18%, rgba(228,218,195,0.16) 0 8%, transparent 27%),
       linear-gradient(135deg, var(--forest-soft), var(--forest) 48%, var(--forest-deep));
@@ -1181,7 +1178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
     content:'';
     position:absolute;
     inset:0;
-    background:url('assets/hero-nature-event-optimized.jpg') center/cover no-repeat;
+    background:url('<?php echo h(app_url('assets/hero-nature-event-optimized.jpg')); ?>') center/cover no-repeat;
     opacity:0.08;
     transform:scale(1.05);
     animation:slowBackdrop 18s ease-in-out infinite alternate;
@@ -1458,23 +1455,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
 	    display:grid;
 	    grid-template-columns:repeat(2,minmax(0,1fr));
 	    gap:14px;
+	    align-items:start;
 	  }
 	  .faq-item{
 	    border:1px solid rgba(20,47,40,.12);
-	    border-radius:8px;
+	    border-radius:12px;
 	    background:#fff;
-	    padding:20px;
 	    box-shadow:0 18px 44px -38px rgba(20,47,40,.6);
+	    transition:border-color .2s ease,box-shadow .2s ease;
 	  }
-	  .faq-item h3{
+	  .faq-item summary{
+	    display:flex;
+	    align-items:center;
+	    justify-content:space-between;
+	    gap:18px;
+	    padding:19px 20px;
 	    color:var(--forest);
 	    font-size:1rem;
-	    margin-bottom:8px;
+	    font-weight:600;
+	    line-height:1.5;
+	    cursor:pointer;
+	    list-style:none;
 	  }
+	  .faq-item summary::-webkit-details-marker{display:none}
+	  .faq-item summary::after{content:'';width:9px;height:9px;flex:0 0 9px;border-right:2px solid #94703b;border-bottom:2px solid #94703b;transform:rotate(45deg);margin:0 4px 5px 0;transition:transform .2s ease}
+	  .faq-item summary:hover{color:#91642d}
+	  .faq-item summary:focus-visible{outline:3px solid #d9a24b;outline-offset:3px;border-radius:12px}
+	  .faq-item[open]{border-color:#c9b68f;box-shadow:0 12px 28px -22px rgba(20,47,40,.35)}
+	  .faq-item[open] summary::after{transform:rotate(225deg);margin-bottom:-4px}
 	  .faq-item p{
 	    color:#52645c;
 	    line-height:1.65;
+	    margin:0 20px 20px;
+	    padding-top:15px;
+	    border-top:1px solid #ece8dd;
 	  }
+	  .faq-item p a{text-decoration:underline;text-underline-offset:3px}
+	  @media(prefers-reduced-motion:reduce){.faq-item,.faq-item summary::after{transition:none}}
 	  @media (max-width: 820px){
 	    .faq-head,
 	    .faq-grid{
@@ -1510,7 +1527,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   padding:92px 0 78px !important;
   background:
     linear-gradient(90deg,rgba(24,47,39,.88),rgba(83,99,88,.72) 47%,rgba(205,207,199,.84)),
-    url('assets/hero-nature-event-optimized.jpg') center/cover no-repeat !important;
+    url('<?php echo h(app_url('assets/hero-nature-event-optimized.jpg')); ?>') center/cover no-repeat !important;
 }
 .page-home .hero::before,
 .page-home .hero::after,
@@ -1874,7 +1891,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_submit'])) {
   z-index:0 !important;
   pointer-events:none !important;
   background:
-    url('assets/hero-nature-event-optimized.jpg') center top/cover no-repeat !important;
+    url('<?php echo h(app_url('assets/hero-nature-event-optimized.jpg')); ?>') center top/cover no-repeat !important;
   opacity:1 !important;
   transform:scale(1.035) translate3d(0,0,0) !important;
   animation:heroBgMove 18s ease-in-out infinite alternate !important;
@@ -1969,7 +1986,7 @@ html,
 body{
   margin:0 !important;
   padding:0 !important;
-  background:#10261f url('assets/hero-nature-event-optimized.jpg') center top/cover no-repeat !important;
+  background:#10261f url('<?php echo h(app_url('assets/hero-nature-event-optimized.jpg')); ?>') center top/cover no-repeat !important;
 }
 .page-home #siteHeader{
   top:0 !important;
@@ -2111,6 +2128,7 @@ body{
   }
 }
 </style>
+<link rel="stylesheet" href="<?php echo h(app_url('assets/guest-stories.css')); ?>"><script src="<?php echo h(app_url('assets/guest-stories.js')); ?>" defer></script>
 </head>
 <body class="page-home">
 
@@ -2125,8 +2143,8 @@ body{
 	    <p class="tagline">Celebrate beautifully at Anantha.</p>
 	    <p class="lede">An exclusive outdoor venue in Kommadi for birthdays, engagements, Haldi, Sangeet, receptions, weddings and family celebrations &mdash; up to 300 guests.</p>
 	    <div class="hero-actions">
-		      <a href="availability.php" class="btn btn--gold">Check Your Date</a>
-		      <a href="<?php echo h($heroWhatsappLink); ?>" class="btn btn--outline" target="_blank" rel="noopener">WhatsApp Us</a>
+		      <a href="<?php echo h(app_url('availability.php', '')); ?>" class="btn btn--gold">Check Your Date</a>
+		      <a href="<?php echo h(app_url((string)($heroWhatsappLink), "")); ?>" class="btn btn--outline" target="_blank" rel="noopener">WhatsApp Us</a>
 	    </div>
 	    <p class="hero-highlights">PRIVATE VENUE &bull; ONE EVENT PER DAY &bull; 2 AC ROOMS &bull; MINI HALL &bull; UP TO 300 GUESTS</p>
 	  </div>
@@ -2143,12 +2161,12 @@ body{
       <article>
         <h3>1. Check your date</h3>
         <p>Choose your event date and guest count using our availability form.</p>
-        <a href="availability.php">Check availability &rarr;</a>
+        <a href="<?php echo h(app_url('availability.php', '')); ?>">Check availability &rarr;</a>
       </article>
       <article>
         <h3>2. Request a quotation</h3>
         <p>Share your occasion and requirements. The team will guide you through verification and your quotation.</p>
-        <a href="<?php echo h($heroWhatsappLink); ?>" target="_blank" rel="noopener">Ask on WhatsApp &rarr;</a>
+        <a href="<?php echo h(app_url((string)($heroWhatsappLink), "")); ?>" target="_blank" rel="noopener">Ask on WhatsApp &rarr;</a>
       </article>
       <article>
         <h3>3. Arrange a visit</h3>
@@ -2156,7 +2174,7 @@ body{
         <a href="#visit">Find us and arrange a visit &rarr;</a>
       </article>
     </div>
-    <p>A date enquiry does not confirm a booking. Review the <a href="terms.php">booking terms</a> and confirm the next steps with our team.</p>
+    <p>A date enquiry does not confirm a booking. Review the <a href="<?php echo h(app_url('terms.php', '')); ?>">booking terms</a> and confirm the next steps with our team.</p>
   </div>
 </section>
 
@@ -2177,7 +2195,7 @@ body{
           <span>Cleaning <strong>&#8377;2,000 / event</strong></span>
           <span>Refundable deposit <strong>&#8377;10,000</strong></span>
         </div>
-        <p class="small-note">Package quotation shared by the team. <a href="rules.php">Read the venue rules &rarr;</a></p>
+        <p class="small-note">Package quotation shared by the team. <a href="<?php echo h(app_url('rules.php', '')); ?>">Read the venue rules &rarr;</a></p>
       </div>
     </div>
   </div>
@@ -2205,25 +2223,25 @@ body{
 	        <p class="eyebrow">The grounds</p>
 			        <h2>A setting for <em>your story.</em></h2>
 		      </div>
-			      <div><p>Open lawns, celebration setups, and rooms close by for the people who matter most.</p><a class="btn btn--gold" href="gallery.php">Explore the full gallery</a></div>
+			      <div><p>Open lawns, celebration setups, and rooms close by for the people who matter most.</p><a class="btn btn--gold" href="<?php echo h(app_url('gallery.php', '')); ?>">Explore the full gallery</a></div>
 	    </div>
 
     <div class="venue-gallery">
       <figure class="photo-tile">
-	        <img src="assets/hero-nature-event-optimized.jpg" alt="Anantha lawn venue glowing with evening event lights and tables" loading="lazy" decoding="async">
+	        <img src="<?php echo h(app_url('assets/hero-nature-event-optimized.jpg', '')); ?>" alt="Anantha lawn venue glowing with evening event lights and tables" loading="lazy" decoding="async">
         <figcaption class="photo-caption">
 	          <strong>Outdoor celebration space</strong>
         </figcaption>
       </figure>
       <div class="photo-stack">
         <figure class="photo-tile small">
-	          <img src="assets/gallery-day-lawn-optimized.jpg" alt="Fresh daytime lawn and guest rooms at Anantha" loading="lazy" decoding="async">
+	          <img src="<?php echo h(app_url('assets/gallery-day-lawn-optimized.jpg', '')); ?>" alt="Fresh daytime lawn and guest rooms at Anantha" loading="lazy" decoding="async">
           <figcaption class="photo-caption">
 	            <strong>Day lawn view</strong>
           </figcaption>
         </figure>
         <figure class="photo-tile small">
-	          <img src="assets/gallery-celebration-evening-optimized.jpg" alt="Decorated outdoor wedding and birthday celebration setup" loading="lazy" decoding="async">
+	          <img src="<?php echo h(app_url('assets/gallery-celebration-evening-optimized.jpg', '')); ?>" alt="Decorated outdoor wedding and birthday celebration setup" loading="lazy" decoding="async">
           <figcaption class="photo-caption">
 	            <strong>Celebration setup</strong>
           </figcaption>
@@ -2244,77 +2262,48 @@ body{
     </div>
 
 	    <div class="occasion-grid">
-		      <a class="occasion-card" href="reception-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-reception-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('reception-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-reception-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Receptions</h3></div>
 	      </a>
-		      <a class="occasion-card" href="engagement-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-engagement-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('engagement-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-engagement-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Engagements</h3></div>
 	      </a>
-		      <a class="occasion-card" href="haldi-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-haldi-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('haldi-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-haldi-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Haldi</h3></div>
 	      </a>
-		      <a class="occasion-card" href="mehendi-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-mehendi-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('mehendi-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-mehendi-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Mehendi</h3></div>
 	      </a>
-		      <a class="occasion-card" href="sangeet-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-sangeet-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('sangeet-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-sangeet-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Sangeet</h3></div>
 	      </a>
-		      <a class="occasion-card" href="birthday-party-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-birthday-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('birthday-party-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-birthday-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Birthdays</h3></div>
 	      </a>
-		      <a class="occasion-card" href="anniversary-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-anniversary-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('anniversary-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-anniversary-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Anniversaries</h3></div>
 	      </a>
-		      <a class="occasion-card" href="family-celebration-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-family-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('family-celebration-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-family-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Family celebrations</h3></div>
 	      </a>
-		      <a class="occasion-card" href="corporate-event-venue-visakhapatnam.php" style="--occasion-art:url('assets/occasion-corporate-optimized.jpg'); --occasion-position:center;">
+		      <a class="occasion-card" href="<?php echo h(app_url('corporate-event-venue-visakhapatnam.php', '')); ?>" style="--occasion-art:url('<?php echo h(app_url('assets/occasion-corporate-optimized.jpg')); ?>'); --occasion-position:center;">
 	        <div class="occasion-copy"><h3>Corporate gatherings</h3></div>
 	      </a>
 	    </div>
   </div>
 </section>
 
-<section class="section-dark reviews-section" id="reviews">
+<section class="guest-stories" id="reviews" aria-labelledby="guest-stories-title">
   <div class="container reveal">
-    <div class="review-head">
-      <div>
-	        <h2>Memories made. <em>Kind words shared.</em></h2>
-      </div>
-      <p>Small moments, warm gatherings and celebrations remembered long after the day.</p>
-	      <?php if ($googleReviewLink !== ''): ?><a class="btn btn--gold" href="<?php echo h($googleReviewLink); ?>" target="_blank" rel="noopener">View Google Reviews</a><?php endif; ?>
+    <div class="guest-stories-heading"><div><span class="guest-eyebrow">GUEST EXPERIENCES</span><h2 id="guest-stories-title">Memories made.<br><span>Kind words shared.</span></h2></div><div class="guest-stories-intro"><p>Real moments, thoughtful details and the people who make Anantha special.</p><a href="<?php echo h(app_url('review.php')); ?>">Read our guest stories <span aria-hidden="true">&nearr;</span></a></div></div>
+    <?php if ($homeReviews): ?>
+    <div class="guest-stories-viewport" id="guestStories" tabindex="0" role="region" aria-label="Guest testimonials. Use the arrow buttons or scroll to read more.">
+      <?php foreach ($homeReviews as $review): $isGoogleReview=($review['source'] ?? '')==='google'; $rating=max(1,min(5,(int)($review['rating'] ?? 5))); $nameParts=preg_split('/\s+/u',trim($review['client_name'])); $initials=mb_substr($nameParts[0] ?? '',0,1).(count($nameParts)>1?mb_substr(end($nameParts),0,1):''); ?>
+      <article class="guest-story"><div class="guest-story-top"><span class="guest-stars" role="img" aria-label="Rated <?php echo $rating; ?> out of 5"><span aria-hidden="true"><?php echo str_repeat('★',$rating); ?><span class="empty-stars"><?php echo str_repeat('☆',5-$rating); ?></span></span></span><span class="guest-quote-mark" aria-hidden="true">&ldquo;</span></div><blockquote><?php echo h($review['review_text']); ?></blockquote><footer><span class="guest-avatar" aria-hidden="true"><?php echo h(mb_strtoupper($initials)); ?></span><div><strong><?php if(!empty($review['author_url'])): ?><a class="google-author-link" href="<?php echo h($review['author_url']); ?>" target="_blank" rel="noopener"><?php echo h($review['client_name']); ?></a><?php else: ?><?php echo h($review['client_name']); ?><?php endif; ?></strong><span><?php echo h(($review['event_type'] ?? '') ?: 'Guest experience'); ?></span></div><?php if ($isGoogleReview): ?><a class="guest-source google-maps-attribution" translate="no" href="<?php echo h($review['url'] ?: $googleReviewLink); ?>" target="_blank" rel="noopener">Google Maps</a><?php endif; ?></footer></article>
+      <?php endforeach; ?>
     </div>
-
-    <div class="review-carousel" id="reviewCarousel">
-      <div class="review-wrap">
-        <?php if ($homeReviews): ?>
-          <div class="review-track<?php echo count($homeReviews) > 1 ? ' is-moving' : ''; ?>">
-            <div class="review-group">
-	              <?php foreach ($homeReviews as $review): ?>
-	                <?php $isGoogleReview = ($review['source'] ?? '') === 'google'; ?>
-	                <article class="review-card">
-	                  <p class="quote">"<?php echo h($review['review_text']); ?>"</p>
-	                  <p class="who"><?php echo h($review['client_name']); ?><?php echo !empty($review['event_type']) ? ' - ' . h($review['event_type']) : ''; ?><?php if ($isGoogleReview): ?><em class="source-badge">Google Maps</em><?php endif; ?></p>
-	                </article>
-	              <?php endforeach; ?>
-            </div>
-            <?php if (count($homeReviews) > 1): ?>
-              <div class="review-group" aria-hidden="true">
-	                <?php foreach ($homeReviews as $review): ?>
-	                  <?php $isGoogleReview = ($review['source'] ?? '') === 'google'; ?>
-	                  <article class="review-card">
-	                    <p class="quote">"<?php echo h($review['review_text']); ?>"</p>
-	                    <p class="who"><?php echo h($review['client_name']); ?><?php echo !empty($review['event_type']) ? ' - ' . h($review['event_type']) : ''; ?><?php if ($isGoogleReview): ?><em class="source-badge">Google Maps</em><?php endif; ?></p>
-	                  </article>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-          </div>
-        <?php else: ?>
-          <div class="review-empty">Guest stories will appear here after approval.</div>
-        <?php endif; ?>
-      </div>
-    </div>
+    <div class="guest-stories-bottom"><div class="guest-stories-note"><span>A selection of Google Maps reviews, ordered by relevance.</span><br><?php if ($googleReviewLink !== ''): ?><a href="<?php echo h($googleReviewLink); ?>" target="_blank" rel="noopener">View Google Maps reviews &nearr;</a><?php else: ?><span>A little glimpse into celebrations at Anantha.</span><?php endif; ?></div><?php if(count($homeReviews)>1): ?><div class="guest-stories-controls"><span class="guest-stories-count" aria-live="polite" aria-atomic="true"></span><button type="button" data-story-direction="-1" aria-label="Previous testimonials" aria-controls="guestStories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><button type="button" data-story-direction="1" aria-label="Next testimonials" aria-controls="guestStories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div><?php endif; ?></div>
+    <?php else: ?><div class="guest-stories-empty">Read our guests' experiences on Google Maps.<br><a href="<?php echo h($googleReviewLink); ?>" target="_blank" rel="noopener">View Google Maps reviews &nearr;</a></div><?php endif; ?>
   </div>
 </section>
 
@@ -2348,30 +2337,30 @@ body{
 	      <p>Anantha Event Lawns is a private outdoor event lawn in Kommadi, Madhurawada with one private event per day, two AC rooms, one mini hall and guest capacity up to 300.</p>
 	    </div>
 	    <div class="faq-grid">
-	      <article class="faq-item">
-	        <h3>What is included in the lawn?</h3>
+	      <details class="faq-item" name="venue-faq">
+	        <summary>What is included in the lawn?</summary>
 	        <p>The booking includes the event lawn, mini hall support, two AC rooms, washrooms, hand wash points, flood lights and space for stage, food counters and guest seating.</p>
-	      </article>
-	      <article class="faq-item">
-	        <h3>What are the event timings?</h3>
-		        <p>Please see our <a href="rules.php">current check-in, checkout and venue rules</a>. Mini hall use closes by 10:00 PM, and loud sound or DJ timings must follow local permission rules.</p>
-	      </article>
-	      <article class="faq-item">
-	        <h3>Can we check date availability?</h3>
+	      </details>
+	      <details class="faq-item" name="venue-faq">
+	        <summary>What are the event timings?</summary>
+		        <p>Please see our <a href="<?php echo h(app_url('rules.php', '')); ?>">current check-in, checkout and venue rules</a>. Mini hall use closes by 10:00 PM, and loud sound or DJ timings must follow local permission rules.</p>
+	      </details>
+	      <details class="faq-item" name="venue-faq">
+	        <summary>Can we check date availability?</summary>
 	        <p>Yes. Use Check Availability, choose your event date, and the form will show whether the date is available because only one private event is accepted per day.</p>
-	      </article>
-	      <article class="faq-item">
-	        <h3>Are liquor and DJ allowed?</h3>
+	      </details>
+	      <details class="faq-item" name="venue-faq">
+	        <summary>Are liquor and DJ allowed?</summary>
 	        <p>Liquor, DJ and amplified sound are allowed only with required permissions and within legal timing limits. The client and vendors are responsible for permits and safe conduct.</p>
-	      </article>
-	      <article class="faq-item">
-	        <h3>How many guests can attend?</h3>
+	      </details>
+	      <details class="faq-item" name="venue-faq">
+	        <summary>How many guests can attend?</summary>
 	        <p>The venue supports up to 300 guests. The enquiry form asks for expected guest count so the team can suggest the right package and layout.</p>
-	      </article>
-	      <article class="faq-item">
-		        <h3>How do we get a quotation?</h3>
-		        <p>Share your event date, occasion, guest count and setup needs through <a href="availability.php">Check Availability</a>. The team will guide you through verification and your quotation. For help before completing the form, <a href="<?php echo h($heroWhatsappLink); ?>" target="_blank" rel="noopener">ask us on WhatsApp</a>.</p>
-	      </article>
+	      </details>
+	      <details class="faq-item" name="venue-faq">
+		        <summary>How do we get a quotation?</summary>
+		        <p>Share your event date, occasion, guest count and setup needs through <a href="<?php echo h(app_url('availability.php', '')); ?>">Check Availability</a>. The team will guide you through verification and your quotation. For help before completing the form, <a href="<?php echo h(app_url((string)($heroWhatsappLink), "")); ?>" target="_blank" rel="noopener">ask us on WhatsApp</a>.</p>
+	      </details>
 	    </div>
 	  </div>
 	</section>

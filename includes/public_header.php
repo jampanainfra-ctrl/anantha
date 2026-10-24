@@ -10,9 +10,11 @@ $navClass = static function (string $key) use ($publicHeaderActive): string {
     return $publicHeaderActive === $key ? ' class="active" aria-current="page"' : '';
 };
 ?>
-<link rel="stylesheet" href="assets/cursors.css">
-<link rel="stylesheet" href="assets/forms.css">
-<script src="assets/forms.js" defer></script>
+<link rel="stylesheet" href="<?php echo h(app_url('assets/cursors.css', '')); ?>">
+<script src="<?php echo h(app_url('assets/cursors.js')); ?>" defer></script>
+<link rel="stylesheet" href="<?php echo h(app_url('assets/forms.css', '')); ?>">
+<link rel="stylesheet" href="<?php echo h(app_url('assets/google-reviews.css')); ?>">
+<script src="<?php echo h(app_url('assets/forms.js', '')); ?>" defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap');
 #siteHeader{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition:background .4s ease,padding .4s ease,box-shadow .4s ease}
@@ -181,8 +183,11 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}input
 #siteHeader .nav-links a.active{
   color:#dda246 !important;
 }
-#siteHeader .nav-links .nav-cta,
-#siteHeader .mobile-nav-cta{
+#siteHeader .nav-links a.nav-cta,
+#siteHeader .nav-links a.nav-cta.active,
+#siteHeader .nav-links a.nav-cta:hover,
+#siteHeader .nav-links a.nav-cta:focus-visible,
+#siteHeader a.mobile-nav-cta{
   background:#dda246 !important;
   border-color:#dda246 !important;
   border-radius:4px !important;
@@ -233,23 +238,26 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}input
     font-size:.62rem !important;
   }
 }
+@media(max-width:860px){#siteHeader .nav-links{visibility:hidden;transition:transform .4s ease,visibility 0s linear .4s;box-shadow:none}#siteHeader .nav-links.open{visibility:visible;transition-delay:0s;box-shadow:-24px 0 50px -28px rgba(0,0,0,.65)}}
+#siteHeader.home-header .nav-links a.nav-cta,
+#siteHeader.home-header a.mobile-nav-cta{border-radius:999px !important}
 </style>
-<header id="siteHeader">
+<header id="siteHeader"<?php echo $publicHeaderHome ? ' class="home-header"' : ''; ?>>
   <div class="container nav">
-    <a href="<?php echo h($homeHref); ?>" class="brand" aria-label="Anantha Event Lawns home">
+    <a href="<?php echo h(app_url((string)($homeHref), "")); ?>" class="brand" aria-label="Anantha Event Lawns home">
       <span class="brand-name">Anantha</span>
       <span class="brand-subtitle">Event Lawns</span>
     </a>
     <ul class="nav-links" id="navLinks">
       <li class="menu-close-row"><button class="menu-close" id="menuClose" type="button" aria-label="Close menu">&times;</button></li>
-      <li><a<?php echo $navClass('home'); ?> href="<?php echo h($homeHref); ?>">Home</a></li>
-      <li><a<?php echo $navClass('gallery'); ?> href="gallery.php">Gallery</a></li>
-      <li><a<?php echo $navClass('occasions'); ?> href="<?php echo h($occasionsHref); ?>">Ideas</a></li>
-      <li><a<?php echo $navClass('rules'); ?> href="rules.php">Venue Rules</a></li>
-      <li><a<?php echo $navClass('contact'); ?> href="<?php echo h($contactHref); ?>">Contact</a></li>
-      <li><a class="nav-cta<?php echo $publicHeaderActive === 'availability' ? ' active' : ''; ?>"<?php echo $publicHeaderActive === 'availability' ? ' aria-current="page"' : ''; ?> href="<?php echo h($availabilityHref); ?>">Check Availability</a></li>
+      <li><a<?php echo $navClass('home'); ?> href="<?php echo h(app_url((string)($homeHref), "")); ?>">Home</a></li>
+      <li><a<?php echo $navClass('gallery'); ?> href="<?php echo h(app_url('gallery.php', '')); ?>">Gallery</a></li>
+      <li><a<?php echo $navClass('occasions'); ?> href="<?php echo h(app_url((string)($occasionsHref), "")); ?>">Ideas</a></li>
+      <li><a<?php echo $navClass('rules'); ?> href="<?php echo h(app_url('rules.php', '')); ?>">Venue Rules</a></li>
+      <li><a<?php echo $navClass('contact'); ?> href="<?php echo h(app_url((string)($contactHref), "")); ?>">Contact</a></li>
+      <li><a class="nav-cta<?php echo $publicHeaderActive === 'availability' ? ' active' : ''; ?>"<?php echo $publicHeaderActive === 'availability' ? ' aria-current="page"' : ''; ?> href="<?php echo h(app_url((string)($availabilityHref), "")); ?>">Check Availability</a></li>
     </ul>
-    <a class="mobile-nav-cta<?php echo $publicHeaderActive === 'availability' ? ' active' : ''; ?>" href="<?php echo h($availabilityHref); ?>"<?php echo $publicHeaderActive === 'availability' ? ' aria-current="page"' : ''; ?> aria-label="Check availability">Check Availability</a>
+    <a class="mobile-nav-cta<?php echo $publicHeaderActive === 'availability' ? ' active' : ''; ?>" href="<?php echo h(app_url((string)($availabilityHref), "")); ?>"<?php echo $publicHeaderActive === 'availability' ? ' aria-current="page"' : ''; ?> aria-label="Check availability">Check Availability</a>
     <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks"><span aria-hidden="true"></span></button>
   </div>
 </header>

@@ -188,8 +188,16 @@ function find_referral_code(string $input, ?int $existingBookingId = null): ?arr
 
 function referral_bonus_available(int $ownerId, ?int $excludeBookingId = null): float
 {
-    $stmt = db()->prepare("SELECT COUNT(*),COALESCE(SUM(b.referral_referrer_bonus),0) FROM referral_uses u JOIN event_bookings b ON b.id=u.referred_booking_id WHERE u.referrer_booking_id=? AND u.status='applied' AND b.referral_eligible=1 AND b.booking_status<>'cancelled' AND b.id<>?");
-    $stmt->execute([$ownerId,$excludeBookingId ?: 0]);
+    $owner=db()->prepare('SELECT phone FROM event_bookings WHERE id=?');$owner->execute([$ownerId]);
+    $phone=customer_phone((string)$owner->fetchColumn());
+    $sameCustomer='u.referrer_booking_id=?';$params=[$ownerId];
+    if(strlen($phone)===10){
+        $sameCustomer.=' OR RIGHT('.booking_contact_digits_sql('owner.phone').',10)=?';
+        $params[]=$phone;
+    }
+    $params[]=$excludeBookingId ?: 0;
+    $stmt = db()->prepare("SELECT COUNT(*),COALESCE(SUM(b.referral_referrer_bonus),0) FROM referral_uses u JOIN event_bookings b ON b.id=u.referred_booking_id JOIN event_bookings owner ON owner.id=u.referrer_booking_id WHERE ($sameCustomer) AND u.status='applied' AND b.referral_eligible=1 AND b.booking_status<>'cancelled' AND b.id<>?");
+    $stmt->execute($params);
     [$count,$amount] = $stmt->fetch(PDO::FETCH_NUM);
     if ((int)$count >= max(0,(int)rate_setting_value('referral_max_count',5))) return 0.0;
     return max(0.0,(float)rate_setting_value('referral_bonus_cap',5000)-(float)$amount);
@@ -206,7 +214,6 @@ function save_booking_referral(int $bookingId, string $input, bool $eligible = t
         $booking = $stmt->fetch();
         if (!$booking) throw new RuntimeException('Booking was not found.');
         $duplicate = duplicate_booking_contact_message((string)$booking['phone'], (string)($booking['email'] ?? ''), $bookingId, (string)($booking['whatsapp_number'] ?? ''), true);
-        if ($duplicate !== '') throw new RuntimeException('This mobile, WhatsApp number or email is already used by another booking.');
         $stmt = db()->prepare('SELECT * FROM referral_uses WHERE referred_booking_id=? FOR UPDATE');
         $stmt->execute([$bookingId]);
         $existing = $stmt->fetch();
@@ -224,6 +231,7 @@ function save_booking_referral(int $bookingId, string $input, bool $eligible = t
         $stmt->execute([$code['id']]);
         $locked = $stmt->fetch();
         $unchanged = $existing && $existing['status']==='applied' && (int)$existing['code_id']===(int)$code['id'];
+        if ($duplicate !== '' && !$unchanged) throw new RuntimeException('This mobile, WhatsApp number or email is already used by another booking. Repeat customers cannot claim another new-member referral.');
         if (!$unchanged && referral_code_state($locked) !== 'active') throw new RuntimeException('This referral code is no longer available.');
         if ($existing && !$unchanged) throw new RuntimeException('This booking has already used a referral. A second referral cannot be applied, even after removal.');
         $stmt = db()->prepare('SELECT * FROM event_bookings WHERE id=? FOR UPDATE');
@@ -262,7 +270,8 @@ function referral_csrf_token(): string
 
 function require_referral_csrf(): void
 {
-    if (!hash_equals(referral_csrf_token(),(string)($_POST['csrf_token'] ?? ''))) throw new RuntimeException('Your session changed. Refresh the page and try again.');
+    $token=$_POST['csrf_token'] ?? '';
+    if (!is_string($token)||!hash_equals(referral_csrf_token(),$token)) throw new RuntimeException('Your session changed. Refresh the page and try again.');
 }
 
 function sync_cancelled_referrals(): void

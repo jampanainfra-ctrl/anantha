@@ -52,10 +52,10 @@ function render_rate_card_rows(array $settings, string $search): string
         ?>
         <tr>
           <td>
-            <form id="<?php echo h($formId); ?>" method="POST" action="actions.php"></form>
+            <form id="<?php echo h($formId); ?>" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>"></form>
             <input form="<?php echo h($formId); ?>" type="hidden" name="csrf_token" value="<?php echo h(referral_csrf_token()); ?>">
             <input form="<?php echo h($formId); ?>" type="hidden" name="action" value="save_rate_setting">
-            <input form="<?php echo h($formId); ?>" type="hidden" name="back" value="<?php echo h($back); ?>">
+            <input form="<?php echo h($formId); ?>" type="hidden" name="back" value="<?php echo h(app_url($back, 'admin')); ?>">
             <input form="<?php echo h($formId); ?>" type="hidden" name="setting_key" value="<?php echo h($setting['setting_key']); ?>">
             <input form="<?php echo h($formId); ?>" name="label" required value="<?php echo h($setting['label']); ?>">
           </td>
@@ -65,10 +65,10 @@ function render_rate_card_rows(array $settings, string $search): string
           <td><input form="<?php echo h($formId); ?>" name="display_order" type="number" value="<?php echo h($setting['display_order']); ?>"></td>
           <td><button form="<?php echo h($formId); ?>" class="btn gold">Update</button></td>
           <td>
-            <form method="POST" action="actions.php" onsubmit="return confirm('Delete this rule rate?');">
+            <form method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>" onsubmit="return confirm('Delete this rule rate?');">
               <input type="hidden" name="csrf_token" value="<?php echo h(referral_csrf_token()); ?>">
               <input type="hidden" name="action" value="delete_rate_setting">
-              <input type="hidden" name="back" value="<?php echo h($back); ?>">
+              <input type="hidden" name="back" value="<?php echo h(app_url($back, 'admin')); ?>">
               <input type="hidden" name="setting_key" value="<?php echo h($setting['setting_key']); ?>">
               <button class="btn red">Delete</button>
             </form>
@@ -78,7 +78,7 @@ function render_rate_card_rows(array $settings, string $search): string
     if (!$settings): ?>
       <tr><td colspan="7">No venue rule rates found. Add Rule Rate is at the top of this page.</td></tr>
     <?php endif;
-    return ob_get_clean();
+    return admin_csrf_forms(ob_get_clean());
 }
 
 $settings = $ready ? rate_card_rows($search) : [];
@@ -102,10 +102,10 @@ admin_page_start('Rate Card', 'rate-card');
 
 <details class="card add-panel package-add-panel" id="add-rule-rate">
   <summary>Add Rule Rate</summary>
-  <form class="form-grid" method="POST" action="actions.php">
+  <form class="form-grid" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
     <input type="hidden" name="csrf_token" value="<?php echo h(referral_csrf_token()); ?>">
     <input type="hidden" name="action" value="save_rate_setting">
-    <input type="hidden" name="back" value="rate-card.php">
+    <input type="hidden" name="back" value="<?php echo h(app_url('rate-card.php', 'admin')); ?>">
     <label>Rule name<input name="label" required placeholder="Late checkout per hour"></label>
     <label>Value<input name="setting_value" type="number" min="0" step="0.01" required placeholder="5000"></label>
     <label>Suffix<input name="suffix" placeholder="Rs, guests, hours"></label>
@@ -117,7 +117,7 @@ admin_page_start('Rate Card', 'rate-card');
 <section class="card">
   <p class="form-note">In Booking → Payments, cleaning is calculated from guest count and the minimum cleaning charge; the refundable deposit and electricity units are added to the total. Other monetary rates can be selected as extra charges. Saved bookings retain their rates until admin chooses the latest Rate Card.</p>
   <div class="package-toolbar">
-    <form class="package-search" method="GET" action="rate-card.php" id="rateSearch">
+    <form class="package-search" method="GET" action="<?php echo h(app_url('rate-card.php', 'admin')); ?>" id="rateSearch">
       <label class="sr-only" for="rateSearchInput">Search rate</label>
       <input id="rateSearchInput" name="q" value="<?php echo h($search); ?>" placeholder="Search rate">
       <button class="icon-btn search-icon" type="submit" aria-label="Search rates" title="Search rates"></button>
@@ -158,7 +158,7 @@ admin_page_start('Rate Card', 'rate-card');
     });
     rateTableBody.classList.add('is-loading');
     try {
-      const response = await fetch('rate-card.php?' + params.toString(), {
+      const response = await fetch('<?php echo app_url('rate-card.php', 'admin'); ?>?' + params.toString(), {
         headers: { 'X-Requested-With': 'fetch' }
       });
       if (!response.ok) throw new Error('Search failed');
@@ -166,7 +166,7 @@ admin_page_start('Rate Card', 'rate-card');
       rateTableBody.innerHTML = data.html;
       const cleanParams = new URLSearchParams();
       if (rateSearchInput.value) cleanParams.set('q', rateSearchInput.value);
-      window.history.replaceState({}, '', cleanParams.toString() ? 'rate-card.php?' + cleanParams.toString() : 'rate-card.php');
+      window.history.replaceState({}, '', cleanParams.toString() ? '<?php echo app_url('rate-card.php', 'admin'); ?>?' + cleanParams.toString() : '<?php echo app_url('rate-card.php', 'admin'); ?>');
     } catch (error) {
       rateSearch.submit();
     } finally {

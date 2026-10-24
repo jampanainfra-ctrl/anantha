@@ -1,9 +1,17 @@
 <?php
 require_once __DIR__ . '/admin_auth.php';
 
+function admin_csrf_forms(string $html): string
+{
+    return preg_replace_callback('~(<form\b[^>]*\bmethod\s*=\s*(["\x27]?)post\2[^>]*>)(.*?</form>)~is',static function(array $match):string{
+        if(preg_match('~\bname\s*=\s*["\x27]csrf_token["\x27]~i',$match[3]))return $match[0];
+        return $match[1].'<input type="hidden" name="csrf_token" value="'.h(referral_csrf_token()).'">'.$match[3];
+    },$html);
+}
 function admin_page_start(string $title, string $active): array
 {
     $admin = require_admin();
+    ob_start('admin_csrf_forms');
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -11,9 +19,9 @@ function admin_page_start(string $title, string $active): array
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo h($title); ?> | Anantha Admin</title>
-<link rel="stylesheet" href="../assets/forms.css">
-<link rel="stylesheet" href="../assets/admin-payments.css">
-<script src="../assets/forms.js" defer></script>
+<link rel="stylesheet" href="<?php echo h(app_url('../assets/forms.css', 'admin')); ?>">
+<link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-payments.css', 'admin')); ?>">
+<script src="<?php echo h(app_url('../assets/forms.js', 'admin')); ?>" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -131,23 +139,33 @@ html,body{max-width:100%;overflow-x:hidden}img,video,iframe{max-width:100%}butto
 .booking-overview__due>strong{color:#fff;font-size:.98rem}
 .booking-overview:focus-visible{outline:2px solid #d9a050;outline-offset:3px}
 @media(max-width:820px){.booking-overview__item{padding:15px 12px}.booking-overview{margin-bottom:16px}}
+.side .admin-logout{display:block;width:100%;text-align:left;padding:10px 12px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer}.side .admin-logout:hover{background:rgba(255,255,255,.08)}
 </style>
+<?php if ($active === 'dashboard'): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-dashboard.css', 'admin')); ?>"><?php endif; ?>
+<?php if ($active === 'referrals'): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-referrals.css', 'admin')); ?>"><?php endif; ?>
+<link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-readability.css', 'admin')); ?>">
+<?php if ($active === 'packages'): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-packages.css', 'admin')); ?>"><?php endif; ?>
+<?php if ($active === 'bookings' && basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'bookings.php'): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-bookings.css', 'admin')); ?>"><?php endif; ?>
+<?php if (in_array($active, ['rate-card','terms','reviews','gallery','blog-images'], true)): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-management-compact.css', 'admin')); ?>"><?php endif; ?>
+<?php if ($active === 'dashboard'): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-dashboard-compact.css', 'admin')); ?>"><?php endif; ?>
+<?php if ($active === 'email'): ?><link rel="stylesheet" href="<?php echo h(app_url('../assets/admin-email.css', 'admin')); ?>"><?php endif; ?>
 </head>
 <body class="admin-<?php echo h($active); ?>">
 <div class="shell">
 <aside class="side">
-  <div class="brand"><img src="../assets/logo.jpeg" alt=""><strong>Anantha Admin</strong></div>
-  <a class="<?php echo $active === 'dashboard' ? 'on' : ''; ?>" href="dashboard.php">Dashboard</a>
-  <a class="<?php echo $active === 'bookings' ? 'on' : ''; ?>" href="bookings.php">Bookings & Payments</a>
-  <a class="<?php echo $active === 'packages' ? 'on' : ''; ?>" href="packages.php">Packages</a>
-  <a class="<?php echo $active === 'referrals' ? 'on' : ''; ?>" href="referrals.php">Referrals &amp; Logs</a>
-  <a class="<?php echo $active === 'rate-card' ? 'on' : ''; ?>" href="rate-card.php">Rate Card</a>
-  <a class="<?php echo $active === 'terms' ? 'on' : ''; ?>" href="terms.php">Terms</a>
-  <a class="<?php echo $active === 'reviews' ? 'on' : ''; ?>" href="reviews.php">Reviews</a>
-  <a class="<?php echo $active === 'gallery' ? 'on' : ''; ?>" href="gallery.php">Gallery</a>
-  <a class="<?php echo $active === 'blog-images' ? 'on' : ''; ?>" href="blog-images.php">Blog Images</a>
-  <a href="../availability.php" target="_blank">Public Calendar</a>
-  <a href="logout.php">Logout</a>
+  <div class="brand"><img src="<?php echo h(app_url('../assets/logo.jpeg', 'admin')); ?>" alt=""><strong>Anantha Admin</strong></div>
+  <a class="<?php echo $active === 'dashboard' ? 'on' : ''; ?>" href="<?php echo h(app_url('dashboard.php', 'admin')); ?>">Dashboard</a>
+  <a class="<?php echo $active === 'bookings' ? 'on' : ''; ?>" href="<?php echo h(app_url('bookings.php', 'admin')); ?>">Bookings & Payments</a>
+  <a class="<?php echo $active === 'packages' ? 'on' : ''; ?>" href="<?php echo h(app_url('packages.php', 'admin')); ?>">Packages</a>
+  <a class="<?php echo $active === 'referrals' ? 'on' : ''; ?>" href="<?php echo h(app_url('referrals.php', 'admin')); ?>">Referrals &amp; Logs</a>
+  <a class="<?php echo $active === 'email' ? 'on' : ''; ?>" href="<?php echo h(app_url('email.php', 'admin')); ?>">Email &amp; Logs</a>
+  <a class="<?php echo $active === 'rate-card' ? 'on' : ''; ?>" href="<?php echo h(app_url('rate-card.php', 'admin')); ?>">Rate Card</a>
+  <a class="<?php echo $active === 'terms' ? 'on' : ''; ?>" href="<?php echo h(app_url('terms.php', 'admin')); ?>">Terms</a>
+  <a class="<?php echo $active === 'reviews' ? 'on' : ''; ?>" href="<?php echo h(app_url('reviews.php', 'admin')); ?>">Reviews</a>
+  <a class="<?php echo $active === 'gallery' ? 'on' : ''; ?>" href="<?php echo h(app_url('gallery.php', 'admin')); ?>">Gallery</a>
+  <a class="<?php echo $active === 'blog-images' ? 'on' : ''; ?>" href="<?php echo h(app_url('blog-images.php', 'admin')); ?>">Blog Images</a>
+  <a href="<?php echo h(app_url('../availability.php', 'admin')); ?>" target="_blank">Public Calendar</a>
+  <form method="POST" action="<?php echo h(app_url('logout.php','admin')); ?>"><button type="submit" class="admin-logout">Logout</button></form>
 </aside>
 <main class="main" id="adminMain" tabindex="0" aria-label="Admin content">
 <?php
@@ -177,6 +195,7 @@ function admin_page_end(): void
 </body>
 </html>
 <?php
+    ob_end_flush();
 }
 
 function flash_message(): array

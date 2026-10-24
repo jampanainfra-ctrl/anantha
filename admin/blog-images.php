@@ -25,7 +25,7 @@ if ($ready) {
 
 <section class="card">
   <div class="section-head"><div><h2>Select Blog</h2><p>Choose which blog page images you want to manage.</p></div></div>
-  <form class="form-grid gallery-form" method="GET" action="blog-images.php">
+  <form class="form-grid gallery-form" method="GET" action="<?php echo h(app_url('blog-images.php', 'admin')); ?>">
     <label class="wide">Blog page
       <select name="page" onchange="this.form.submit()">
         <?php foreach ($pages as $slug => $label): ?>
@@ -39,9 +39,9 @@ if ($ready) {
 
 <section class="card upload-card" id="add-blog-image">
   <div class="section-head"><div><h2>Add Image</h2><p>Upload an image for <?php echo h($pages[$selectedPage]); ?>.</p></div></div>
-  <form class="form-grid gallery-form upload-form" method="POST" enctype="multipart/form-data" action="actions.php">
+  <form class="form-grid gallery-form upload-form" method="POST" enctype="multipart/form-data" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
     <input type="hidden" name="action" value="add_blog_image">
-    <input type="hidden" name="back" value="blog-images.php?page=<?php echo h($selectedPage); ?>">
+    <input type="hidden" name="back" value="<?php echo h(app_url('blog-images.php', 'admin')); ?>?page=<?php echo h($selectedPage); ?>">
     <input type="hidden" name="page_slug" value="<?php echo h($selectedPage); ?>">
     <label>Image title<input name="title" required placeholder="Reception stage setup"></label>
     <label class="wide">Alt text<input name="alt_text" placeholder="Outdoor reception stage and dinner setup at Anantha"></label>
@@ -54,25 +54,25 @@ if ($ready) {
 <section class="card">
   <div class="section-head">
     <div><h2><?php echo h($pages[$selectedPage]); ?> Images</h2><p>These images appear in the blog gallery section. The first image is also used as the hero image.</p></div>
-    <a class="btn" href="../<?php echo h($selectedPage); ?>.php" target="_blank">View Page</a>
+    <a class="btn" href="<?php echo h(app_url($selectedPage . '.php')); ?>" target="_blank">View Page</a>
   </div>
   <div class="gallery-grid-admin">
     <?php foreach ($images as $image): ?>
       <article class="gallery-item">
-	        <img src="../<?php echo h($image['image_path']); ?>" alt="">
+	        <img src="<?php echo h(app_url($image['image_path'])); ?>" alt="">
 	        <div class="gallery-item-body">
-	          <form class="mini-form" method="POST" action="actions.php">
+	          <form class="mini-form" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
 	            <input type="hidden" name="action" value="save_blog_image">
-	            <input type="hidden" name="back" value="blog-images.php?page=<?php echo h($selectedPage); ?>">
+	            <input type="hidden" name="back" value="<?php echo h(app_url('blog-images.php', 'admin')); ?>?page=<?php echo h($selectedPage); ?>">
 	            <input type="hidden" name="image_id" value="<?php echo (int) $image['id']; ?>">
 	            <label>Title<input name="title" required value="<?php echo h($image['title']); ?>"></label>
 	            <label>Sequence<input type="number" name="display_order" value="<?php echo h((string) $image['display_order']); ?>"></label>
 	            <label class="full">Alt text<input name="alt_text" value="<?php echo h($image['alt_text']); ?>"></label>
 	            <button class="btn gold">Update</button>
 	          </form>
-	          <form method="POST" action="actions.php" onsubmit="return confirm('Remove this image from this blog page?');">
+	          <form method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>" onsubmit="return confirm('Remove this image from this blog page?');">
             <input type="hidden" name="action" value="delete_blog_image">
-            <input type="hidden" name="back" value="blog-images.php?page=<?php echo h($selectedPage); ?>">
+            <input type="hidden" name="back" value="<?php echo h(app_url('blog-images.php', 'admin')); ?>?page=<?php echo h($selectedPage); ?>">
             <input type="hidden" name="image_id" value="<?php echo (int) $image['id']; ?>">
             <button class="btn red">Delete</button>
           </form>

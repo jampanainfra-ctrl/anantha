@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . '/_bootstrap.php';
-api_require_db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    api_require_db();
+    $spacingError=required_leading_space_error($_POST,['client_name'=>'Name','review_text'=>'Review']);
+    if($spacingError!=='')json_response(['ok'=>false,'error'=>$spacingError],422);
     $name = trim(strip_tags($_POST['client_name'] ?? ''));
     $text = trim(strip_tags($_POST['review_text'] ?? ''));
     $event = trim(strip_tags($_POST['event_type'] ?? ''));
@@ -12,8 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $stmt = db()->prepare("INSERT INTO reviews (client_name, event_type, rating, review_text, status, created_by) VALUES (?, ?, ?, ?, 'pending', 'public')");
     $stmt->execute([$name, $event, $rating, $text]);
-    json_response(['ok' => true, 'message' => 'Review submitted for approval.'], 201);
+        notify_public_review((int)db()->lastInsertId(), $name, $rating);
+    json_response(['ok' => true, 'message' => 'Your feedback has been sent privately to the venue.'], 201);
 }
 
-$reviews = db()->query("SELECT id, client_name, event_type, rating, review_text, created_at FROM reviews WHERE status='published' ORDER BY created_at DESC")->fetchAll();
-json_response(['ok' => true, 'reviews' => $reviews]);
+$google=google_reviews_data();
+header('Cache-Control: no-store');
+json_response(['ok'=>true,'source'=>'google','reviews'=>$google['reviews'],'rating'=>$google['rating'],'total'=>$google['total'],'url'=>GOOGLE_REVIEW_URL ?: $google['url']]);

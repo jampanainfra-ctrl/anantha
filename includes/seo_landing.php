@@ -8,10 +8,10 @@ if (!isset($seoPage) || !is_array($seoPage)) {
     exit('Page not found');
 }
 
-$slug = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '.php');
+$slug = basename((string) ($_SERVER['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_NAME'] ?? ''), '.php');
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = preg_replace('/[^a-z0-9.:-]/i', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
-$canonical = $scheme . '://' . $host . rtrim(dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/')), '/\\') . '/' . $slug . '.php';
+$canonical = $scheme . '://' . $host . app_url($slug . '.php');
 $fallbackBlogImages = default_blog_images();
 $adminBlogImages = blog_page_images($slug);
 $defaultGalleryImages = [
@@ -19,7 +19,7 @@ $defaultGalleryImages = [
     ['assets/gallery-celebration-evening-optimized.jpg', 'Evening celebration setup at Anantha'],
     ['assets/hero-nature-event-optimized.jpg', 'Outdoor event setting at Anantha'],
 ];
-$pageImages = $adminBlogImages !== null ? $adminBlogImages : ($seoPage['images'] ?? array_map(static fn ($image) => [$image[1], $image[2]], $fallbackBlogImages[$slug] ?? []));
+$pageImages = $adminBlogImages !== null ? $adminBlogImages : (isset($fallbackBlogImages[$slug]) ? array_map(static fn ($image) => [$image[1], $image[2]], $fallbackBlogImages[$slug]) : ($seoPage['images'] ?? []));
 $pageImages = $pageImages ?: $defaultGalleryImages;
 foreach ($defaultGalleryImages as $image) {
     if (count($pageImages) >= 3) {
@@ -44,8 +44,8 @@ foreach ($seoPage['faqs'] as $faq) {
 <title><?php echo h($seoPage['title']); ?></title>
 <meta name="description" content="<?php echo h($seoPage['description']); ?>">
 <meta name="robots" content="index,follow,max-image-preview:large">
-<link rel="canonical" href="<?php echo h($canonical); ?>">
-<link rel="icon" href="assets/logo.jpeg">
+<link rel="canonical" href="<?php echo h(app_url((string)($canonical), "")); ?>">
+<link rel="icon" href="<?php echo h(app_url('assets/logo.jpeg', '')); ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -64,12 +64,12 @@ foreach ($seoPage['faqs'] as $faq) {
 <body class="page-<?php echo h($slug); ?>">
 <?php $publicHeaderActive = 'occasions'; $publicHeaderHome = false; include __DIR__ . '/public_header.php'; ?>
 <main>
-  <section class="seo-hero" style="background-image:linear-gradient(90deg,rgba(20,47,40,.94),rgba(20,47,40,.52)),url('<?php echo h($heroImage); ?>')">
+  <section class="seo-hero" style="background-image:linear-gradient(90deg,rgba(20,47,40,.94),rgba(20,47,40,.52)),url('<?php echo h(app_url($heroImage)); ?>')">
     <div class="wrap">
       <div class="eyebrow"><?php echo h($seoPage['keyword']); ?></div>
       <h1><?php echo h($seoPage['h1']); ?></h1>
       <p><?php echo h($seoPage['intro']); ?></p>
-      <div class="hero-actions"><a class="btn" href="availability.php">Check Availability</a><a class="btn light" href="gallery.php">View Venue Photos</a></div>
+      <div class="hero-actions"><a class="btn" href="<?php echo h(app_url('availability.php', '')); ?>">Check Availability</a><a class="btn light" href="<?php echo h(app_url('gallery.php', '')); ?>">View Venue Photos</a></div>
     </div>
   </section>
   <section class="quick-facts"><div class="wrap fact-grid"><div class="fact"><strong>Up to 300 guests</strong><span>Comfortable event capacity</span></div><div class="fact"><strong>One event per day</strong><span>Private use for your booking</span></div><div class="fact"><strong>Lawn + mini hall</strong><span>Flexible celebration spaces</span></div><div class="fact"><strong>Two deluxe rooms</strong><span>Air-conditioned family rooms</span></div></div></section>
@@ -83,15 +83,15 @@ foreach ($seoPage['faqs'] as $faq) {
   </section>
   <?php if ($pageImages): ?><section class="occasion-images" aria-labelledby="occasionGalleryTitle">
     <div class="wrap">
-      <h2 id="occasionGalleryTitle"><?php if (!empty($seoPage['gallery_heading_url'])): ?><a href="<?php echo h($seoPage['gallery_heading_url']); ?>"><?php echo h($galleryHeading); ?></a><?php else: ?><?php echo h($galleryHeading); ?><?php endif; ?></h2>
+      <h2 id="occasionGalleryTitle"><?php if (!empty($seoPage['gallery_heading_url'])): ?><a href="<?php echo h(app_url((string)($seoPage['gallery_heading_url']), "")); ?>"><?php echo h($galleryHeading); ?></a><?php else: ?><?php echo h($galleryHeading); ?><?php endif; ?></h2>
       <div class="occasion-image-grid">
-        <?php foreach ($pageImages as $image): ?><figure><img src="<?php echo h($image[0]); ?>" alt="<?php echo h($image[1]); ?>" loading="lazy" decoding="async"></figure><?php endforeach; ?>
+        <?php foreach ($pageImages as $image): ?><figure><img src="<?php echo h(app_url((string)($image[0]), "")); ?>" alt="<?php echo h($image[1]); ?>" loading="lazy" decoding="async"></figure><?php endforeach; ?>
       </div>
     </div>
   </section><?php endif; ?>
-  <section class="location-band"><div class="wrap location-grid"><div><h2><?php echo h($seoPage['location_heading']); ?></h2><p><?php echo h($seoPage['location']); ?></p></div><nav class="link-list" aria-label="Plan your event"><a href="availability.php">Check Availability</a></nav></div></section>
+  <section class="location-band"><div class="wrap location-grid"><div><h2><?php echo h($seoPage['location_heading']); ?></h2><p><?php echo h($seoPage['location']); ?></p></div><nav class="link-list" aria-label="Plan your event"><a href="<?php echo h(app_url('availability.php', '')); ?>">Check Availability</a></nav></div></section>
   <section class="faq"><div class="wrap"><h2><?php echo h($seoPage['faq_heading']); ?></h2><div class="faq-grid"><?php foreach ($seoPage['faqs'] as $faq): ?><details><summary><?php echo h($faq[0]); ?></summary><p><?php echo h($faq[1]); ?></p></details><?php endforeach; ?></div></div></section>
-  <section class="final-cta"><div class="wrap cta-row"><h2>Planning your celebration at Anantha?</h2><a class="btn" href="availability.php">Check Availability</a></div></section>
+  <section class="final-cta"><div class="wrap cta-row"><h2>Planning your celebration at Anantha?</h2><a class="btn" href="<?php echo h(app_url('availability.php', '')); ?>">Check Availability</a></div></section>
 </main>
 <?php include __DIR__ . '/public_footer.php'; ?>
 <?php include __DIR__ . '/chatbot.php'; ?>

@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/routes.php';
+require_once __DIR__ . '/validation.php';
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'anantha');
@@ -9,11 +11,13 @@ define('DB_PASS', '');
 define('WHATSAPP_NUMBER', '917995011199');
 define('CONTACT_EMAIL', 'ananthaeventlawns@gmail.com');
 define('SITE_NAME', 'Anantha Event Lawns');
-define('GOOGLE_REVIEW_URL', '');
-define('GOOGLE_PLACES_API_KEY', '');
-define('GOOGLE_PLACE_ID', '');
+require_once __DIR__.'/google_reviews_settings.php';
+$googleConnection=google_reviews_settings();
+define('GOOGLE_REVIEW_URL', getenv('GOOGLE_REVIEW_URL') ?: $googleConnection['review_url']);
+define('GOOGLE_PLACES_API_KEY', getenv('GOOGLE_PLACES_API_KEY') ?: $googleConnection['api_key']);
+define('GOOGLE_PLACE_ID', getenv('GOOGLE_PLACE_ID') ?: $googleConnection['place_id']);
+unset($googleConnection);
 define('GOOGLE_PLACE_QUERY', 'Anantha Event Lawns, DRK Raju Township, Plot 61, Kommadi Rd, Gandhi Nagar, Madhurawada, Andhra Pradesh 530045, India');
-define('GOOGLE_REVIEWS_CACHE_SECONDS', 21600);
 
 // First login after importing database.sql:
 // Email: admin@anantha.local
@@ -54,9 +58,22 @@ function google_reviews_configured(): bool
     return trim((string) GOOGLE_PLACES_API_KEY) !== '';
 }
 
-function google_reviews_cache_path(): string
+function google_api_failure_message(array $payload, int $statusCode): string
 {
-    return __DIR__ . '/../storage/google_reviews_cache.json';
+    foreach (($payload['error']['details'] ?? []) as $detail) {
+        if (is_array($detail) && ($detail['reason'] ?? '') === 'SERVICE_DISABLED') {
+            return 'Places API (New) is disabled in the Google Cloud project for this key. Enable Places API (New), confirm billing is linked, wait a few minutes, then select Test connection.';
+        }
+    }
+    $message = trim((string) ($payload['error']['message'] ?? ''));
+    if ($message !== '') {
+        $key = (string) GOOGLE_PLACES_API_KEY;
+        if ($key !== '') {
+            $message = str_replace($key, '[private key]', $message);
+        }
+        return 'Google rejected the request (HTTP ' . $statusCode . '). ' . $message;
+    }
+    return 'Google rejected the request (HTTP ' . $statusCode . '). Check the API key, Places API access, billing and server IP restrictions.';
 }
 
 function google_maps_api_json(string $url, array $headers = []): array
@@ -72,19 +89,19 @@ function google_maps_api_json(string $url, array $headers = []): array
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_SSL_VERIFYHOST => 0,
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_HTTPHEADER => $requestHeaders,
         CURLOPT_USERAGENT => SITE_NAME . '/1.0',
     ]);
 
     $body = curl_exec($ch);
-    $error = curl_error($ch);
     $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     curl_close($ch);
 
     if ($body === false || $statusCode >= 400) {
-        return ['ok' => false, 'error' => $error ?: 'Google reviews request failed.'];
+        $errorPayload = $body !== false ? json_decode((string) $body, true) : [];
+        return ['ok' => false, 'error' => $statusCode >= 400 ? google_api_failure_message(is_array($errorPayload) ? $errorPayload : [], $statusCode) : 'Google could not be reached securely. Check the server connection and CA certificates.'];
     }
 
     $payload = json_decode((string) $body, true);
@@ -117,6 +134,11 @@ function google_places_new_reviews(string $placeId): array
         return ['ok' => false, 'error' => (string) $message];
     }
 
+    return google_places_reviews_payload($payload);
+}
+
+function google_places_reviews_payload(array $payload): array
+{
     $reviews = [];
     foreach (($payload['reviews'] ?? []) as $review) {
         if (!is_array($review)) {
@@ -136,7 +158,8 @@ function google_places_new_reviews(string $placeId): array
             'review_text' => $text,
             'created_at' => isset($review['publishTime']) ? date('Y-m-d H:i:s', strtotime((string) $review['publishTime'])) : null,
             'source' => 'google',
-            'url' => (string) ($review['googleMapsUri'] ?? ''),
+            'url' => google_review_safe_url((string) ($review['googleMapsUri'] ?? '')),
+            'author_url' => google_review_safe_url((string) ($review['authorAttribution']['uri'] ?? '')),
         ];
     }
 
@@ -149,82 +172,10 @@ function google_places_new_reviews(string $placeId): array
     ];
 }
 
-function google_places_legacy_reviews(string $placeId): array
-{
-    $url = 'https://maps.googleapis.com/maps/api/place/details/json?'
-        . http_build_query([
-            'place_id' => $placeId,
-            'fields' => 'name,rating,user_ratings_total,reviews,url',
-            'key' => GOOGLE_PLACES_API_KEY,
-        ]);
-    $response = google_maps_api_json($url);
-    if (!$response['ok']) {
-        return $response;
-    }
-
-    $payload = $response['payload'];
-    if (($payload['status'] ?? '') !== 'OK') {
-        return ['ok' => false, 'error' => (string) ($payload['error_message'] ?? $payload['status'] ?? 'Google reviews unavailable.')];
-    }
-
-    $result = $payload['result'] ?? [];
-    $reviews = [];
-    foreach (($result['reviews'] ?? []) as $review) {
-        if (!is_array($review)) {
-            continue;
-        }
-        $text = trim((string) ($review['text'] ?? ''));
-        if ($text === '') {
-            continue;
-        }
-        $reviews[] = [
-            'client_name' => trim((string) ($review['author_name'] ?? 'Google user')) ?: 'Google user',
-            'event_type' => 'Google Maps review',
-            'rating' => max(1, min(5, (int) ($review['rating'] ?? 5))),
-            'review_text' => $text,
-            'created_at' => isset($review['time']) ? date('Y-m-d H:i:s', (int) $review['time']) : null,
-            'source' => 'google',
-            'url' => (string) ($review['author_url'] ?? ''),
-        ];
-    }
-
-    return [
-        'ok' => true,
-        'reviews' => $reviews,
-        'rating' => (float) ($result['rating'] ?? 0),
-        'total' => (int) ($result['user_ratings_total'] ?? 0),
-        'url' => (string) ($result['url'] ?? ''),
-    ];
-}
-
 function google_place_id(): string
 {
-    $configuredPlaceId = trim((string) GOOGLE_PLACE_ID);
-    if ($configuredPlaceId !== '') {
-        return $configuredPlaceId;
-    }
-
-    $query = trim((string) GOOGLE_PLACE_QUERY);
-    if ($query === '') {
-        return '';
-    }
-
-    $url = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json?'
-        . http_build_query([
-            'input' => $query,
-            'inputtype' => 'textquery',
-            'fields' => 'place_id',
-            'key' => GOOGLE_PLACES_API_KEY,
-        ]);
-    $response = google_maps_api_json($url);
-    if (!$response['ok']) {
-        return '';
-    }
-
-    $candidates = $response['payload']['candidates'] ?? [];
-    return is_array($candidates) && isset($candidates[0]['place_id']) ? (string) $candidates[0]['place_id'] : '';
+    return trim((string) GOOGLE_PLACE_ID);
 }
-
 function google_reviews_data(): array
 {
     $empty = [
@@ -240,23 +191,12 @@ function google_reviews_data(): array
         return $empty;
     }
 
-    $cachePath = google_reviews_cache_path();
-    if (is_file($cachePath) && time() - (int) filemtime($cachePath) < (int) GOOGLE_REVIEWS_CACHE_SECONDS) {
-        $cached = json_decode((string) file_get_contents($cachePath), true);
-        if (is_array($cached)) {
-            return array_merge($empty, $cached, ['configured' => true]);
-        }
-    }
-
     $placeId = google_place_id();
     if ($placeId === '') {
         return array_merge($empty, ['error' => 'Google Place ID was not found.']);
     }
 
     $reviewResponse = google_places_new_reviews($placeId);
-    if (!$reviewResponse['ok']) {
-        $reviewResponse = google_places_legacy_reviews($placeId);
-    }
     if (!$reviewResponse['ok']) {
         return array_merge($empty, ['error' => $reviewResponse['error'] ?? 'Google reviews request failed.']);
     }
@@ -270,18 +210,12 @@ function google_reviews_data(): array
         'error' => '',
     ];
 
-    $dir = dirname($cachePath);
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0775, true);
-    }
-    @file_put_contents($cachePath, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
     return $data;
 }
 
 function redirect(string $url): never
 {
-    header('Location: ' . $url);
+    header('Location: ' . app_url($url,'admin'));
     exit;
 }
 
@@ -369,7 +303,7 @@ function booking_contact_digits_sql(string $column): string
     return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE({$column}, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '')";
 }
 
-function duplicate_booking_contact_message(string $phone, string $email = '', ?int $excludeBookingId = null, string $whatsappNumber = '', bool $lock = false): string
+function duplicate_booking_contact_message(string $phone, string $email = '', ?int $excludeBookingId = null, string $whatsappNumber = '', bool $lock = false, string $sameCustomerPhone = ''): string
 {
     if (!db_ready()) {
         return '';
@@ -384,6 +318,10 @@ function duplicate_booking_contact_message(string $phone, string $email = '', ?i
         $whatsappDigits = booking_contact_digits_sql('whatsapp_number');
         $sql = "SELECT booking_reference, client_name FROM event_bookings WHERE (({$phoneDigits}=? OR RIGHT({$phoneDigits}, 10)=?) OR ({$whatsappDigits}=? OR RIGHT({$whatsappDigits}, 10)=?))";
         $params = [$number, $number, $number, $number];
+        if($sameCustomerPhone!==''){
+            $sql.=' AND RIGHT('.$phoneDigits.',10)<>?';
+            $params[]=$sameCustomerPhone;
+        }
         if ($excludeBookingId) {
             $sql .= ' AND id<>?';
             $params[] = $excludeBookingId;
@@ -401,6 +339,10 @@ function duplicate_booking_contact_message(string $phone, string $email = '', ?i
     if ($email !== '') {
         $sql = 'SELECT booking_reference, client_name FROM event_bookings WHERE LOWER(TRIM(email))=?';
         $params = [$email];
+        if($sameCustomerPhone!==''){
+            $sql.=' AND RIGHT('.booking_contact_digits_sql('phone').',10)<>?';
+            $params[]=$sameCustomerPhone;
+        }
         if ($excludeBookingId) {
             $sql .= ' AND id<>?';
             $params[] = $excludeBookingId;
@@ -518,6 +460,7 @@ function ensure_booking_enquiry_schema(): void
             'discount_value' => "ALTER TABLE event_bookings ADD discount_value DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER discount_type",
             'booking_reference' => "ALTER TABLE event_bookings ADD booking_reference VARCHAR(80) DEFAULT NULL AFTER id",
             'whatsapp_number' => "ALTER TABLE event_bookings ADD whatsapp_number VARCHAR(30) DEFAULT NULL AFTER phone",
+            'returning_customer_booking_id' => "ALTER TABLE event_bookings ADD returning_customer_booking_id INT DEFAULT NULL AFTER phone",
             'email' => "ALTER TABLE event_bookings ADD email VARCHAR(160) DEFAULT NULL AFTER whatsapp_number",
             'date_of_birth' => "ALTER TABLE event_bookings ADD date_of_birth DATE DEFAULT NULL AFTER email",
             'occupation' => "ALTER TABLE event_bookings ADD occupation VARCHAR(160) DEFAULT NULL AFTER date_of_birth",
@@ -730,55 +673,9 @@ function seo_blog_pages(): array
 
 function default_blog_images(): array
 {
-    return [
-        'reception-venue-visakhapatnam' => [
-            ['Reception lawn setup', 'assets/occasion-reception-optimized.jpg', 'Outdoor wedding reception setup on a private event lawn', 1],
-            ['Evening reception celebration', 'assets/gallery-celebration-evening-optimized.jpg', 'Evening celebration setup suited for a wedding reception', 2],
-            ['Reception lawn and rooms', 'assets/gallery-day-lawn-optimized.jpg', 'Daylight lawn and rooms for a reception venue walkthrough', 3],
-        ],
-        'engagement-venue-visakhapatnam' => [
-            ['Engagement setup', 'assets/occasion-engagement-optimized.jpg', 'Elegant outdoor engagement ceremony setup', 1],
-            ['Engagement lawn seating', 'assets/gallery-day-lawn-optimized.jpg', 'Daylight lawn space for engagement seating and rituals', 2],
-            ['Engagement evening celebration', 'assets/gallery-celebration-evening-optimized.jpg', 'Evening celebration setup for an engagement function', 3],
-        ],
-        'haldi-venue-visakhapatnam' => [
-            ['Haldi ceremony', 'assets/occasion-haldi-optimized.jpg', 'Yellow marigold haldi ceremony on a green lawn', 1],
-            ['Haldi and mehendi styling', 'assets/occasion-mehendi-optimized.jpg', 'Colourful pre-wedding lawn setup for haldi and family moments', 2],
-            ['Haldi family seating', 'assets/occasion-family-optimized.jpg', 'Family celebration seating arranged on the lawn', 3],
-        ],
-        'mehendi-venue-visakhapatnam' => [
-            ['Mehendi celebration', 'assets/occasion-mehendi-optimized.jpg', 'Colourful outdoor mehendi celebration setup', 1],
-            ['Mehendi pre-wedding decor', 'assets/occasion-haldi-optimized.jpg', 'Bright pre-wedding lawn setup suited to mehendi styling', 2],
-            ['Mehendi photos setup', 'assets/occasion-engagement-optimized.jpg', 'Decorated family celebration setup for mehendi photographs', 3],
-        ],
-        'sangeet-venue-visakhapatnam' => [
-            ['Sangeet evening', 'assets/occasion-sangeet-optimized.jpg', 'Evening sangeet stage and dance floor setup', 1],
-            ['Sangeet lighting', 'assets/gallery-celebration-evening-optimized.jpg', 'Evening celebration lighting for a sangeet night', 2],
-            ['Sangeet stage setup', 'assets/occasion-reception-optimized.jpg', 'Decorated outdoor stage setup for family performances', 3],
-        ],
-        'birthday-party-venue-visakhapatnam' => [
-            ['Birthday party setup', 'assets/occasion-birthday-optimized.jpg', 'Outdoor birthday party with cake and activity areas', 1],
-            ['Birthday celebration room', 'assets/room-birthday-celebration-optimized.jpg', 'Indoor support room arranged for a birthday celebration', 2],
-            ['Birthday family seating', 'assets/occasion-family-optimized.jpg', 'Family celebration seating for birthday guests', 3],
-        ],
-        'anniversary-venue-visakhapatnam' => [
-            ['Anniversary dinner', 'assets/occasion-anniversary-optimized.jpg', 'Romantic outdoor anniversary dinner and memory display', 1],
-            ['Anniversary family gathering', 'assets/occasion-family-optimized.jpg', 'Family celebration seating for anniversary guests', 2],
-            ['Anniversary evening lighting', 'assets/gallery-celebration-evening-optimized.jpg', 'Evening celebration lighting for an anniversary gathering', 3],
-        ],
-        'family-celebration-venue-visakhapatnam' => [
-            ['Family celebration', 'assets/occasion-family-optimized.jpg', 'Family celebration gathering on a spacious lawn', 1],
-            ['Family celebration setup', 'assets/gallery-day-lawn-optimized.jpg', 'Daylight lawn setup for family celebration seating', 2],
-            ['Family evening celebration', 'assets/gallery-celebration-evening-optimized.jpg', 'Evening celebration setup for family gatherings', 3],
-        ],
-        'corporate-event-venue-visakhapatnam' => [
-            ['Corporate event setup', 'assets/occasion-corporate-optimized.jpg', 'Professional outdoor corporate event with presentation screen', 1],
-            ['Corporate team lawn', 'assets/gallery-day-lawn-optimized.jpg', 'Open lawn setup for team activities and seating', 2],
-            ['Corporate evening event', 'assets/gallery-celebration-evening-optimized.jpg', 'Evening corporate gathering setup with venue lighting', 3],
-        ],
-    ];
+    require_once __DIR__ . '/blog_image_catalog.php';
+    return supplied_blog_image_catalog();
 }
-
 function ensure_blog_images_schema(): void
 {
     static $checked = false;
@@ -956,14 +853,17 @@ function package_discounted_price(?float $price, ?float $discountPercent): ?floa
 
 function upload_image(string $field, string $directory): ?string
 {
-    if (empty($_FILES[$field]['name']) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        return null;
-    }
+    $file=$_FILES[$field] ?? [];
+    $error=$file['error'] ?? UPLOAD_ERR_NO_FILE;
+    if($error===UPLOAD_ERR_NO_FILE)return null;
+    if($error!==UPLOAD_ERR_OK)throw new RuntimeException(in_array($error,[UPLOAD_ERR_INI_SIZE,UPLOAD_ERR_FORM_SIZE],true)?'The image is too large. Please choose an image smaller than 5 MB.':'The image upload did not finish. Please choose the file again.');
 
-    $tmp = $_FILES[$field]['tmp_name'];
+    $tmp = $file['tmp_name'] ?? '';
+    if(!is_string($tmp)||!is_file($tmp))throw new RuntimeException('Please choose a valid image file.');
+    if(filesize($tmp)>5*1024*1024)throw new RuntimeException('The image is too large. Please choose an image smaller than 5 MB.');
     $info = @getimagesize($tmp);
     if (!$info) {
-        return null;
+        throw new RuntimeException('Please choose a JPG, PNG or WEBP image.');
     }
 
     $ext = match ($info[2]) {
@@ -973,7 +873,7 @@ function upload_image(string $field, string $directory): ?string
         default => null,
     };
     if (!$ext) {
-        return null;
+        throw new RuntimeException('Please choose a JPG, PNG or WEBP image.');
     }
 
     $safeDirectory = trim($directory, '/\\');
@@ -985,12 +885,16 @@ function upload_image(string $field, string $directory): ?string
     $fileName = date('YmdHis') . '-' . bin2hex(random_bytes(5)) . '.' . $ext;
     $target = $absoluteDirectory . DIRECTORY_SEPARATOR . $fileName;
     if (!move_uploaded_file($tmp, $target)) {
-        return null;
+        throw new RuntimeException('The image could not be stored. Please check the upload folder permissions.');
     }
 
     return str_replace('\\', '/', $safeDirectory . '/' . $fileName);
 }
 
 require_once __DIR__ . '/referrals.php';
+require_once __DIR__ . '/returning_customers.php';
+require_once __DIR__ . '/package_editor.php';
 
 require_once __DIR__ . '/booking_pricing.php';
+
+require_once __DIR__ . '/notifications.php';

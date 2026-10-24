@@ -132,8 +132,8 @@ if ($isEdit) {
 }
 ?>
 <div class="top">
-  <div><h1><?php echo h($pageTitle); ?></h1><p><?php echo $isEdit ? 'Update booking information and payments from one full screen.' : 'First save the booking information, then add payment details.'; ?></p></div>
-  <a class="btn" href="bookings.php">Back to Grid</a>
+  <div><h1><?php echo h($pageTitle); ?></h1><p><?php echo $isEdit ? 'Update booking information and payments from one full screen.' : 'First save the booking information, then add payment details.'; ?></p><?php if(!empty($booking['returning_customer_booking_id'])): ?><p>Returning customer &middot; <a href="<?php echo h(app_url('booking-form.php','admin')); ?>?id=<?php echo (int)$booking['returning_customer_booking_id']; ?>">View previous booking</a></p><?php endif; ?></div>
+  <a class="btn" href="<?php echo h(app_url('bookings.php', 'admin')); ?>">Back to Grid</a>
 </div>
 <?php show_flash(); ?>
 <?php if (!$ready): ?><div class="msg err">Database is not ready. Import database.sql in phpMyAdmin first.</div><?php endif; ?>
@@ -168,7 +168,7 @@ if ($isEdit) {
 
   <div class="tab-panel info-panel">
     <div class="section-head"><div><h2>Customer & Event Information</h2><p>Fill the details clearly. These details appear in the booking grid.</p></div></div>
-    <form class="form-grid friendly-form" method="POST" enctype="multipart/form-data" action="actions.php">
+    <form class="form-grid friendly-form" method="POST" enctype="multipart/form-data" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
       <input type="hidden" name="action" value="save_booking_details">
       <input type="hidden" name="booking_id" value="<?php echo (int) $bookingId; ?>">
       <label>Customer name<input name="client_name" value="<?php echo h($booking['client_name'] ?? ''); ?>" required></label>
@@ -208,7 +208,7 @@ if ($isEdit) {
         <div class="booking-date-legend"><span><i class="available"></i>Available</span><span><i class="booked"></i>Booked</span></div>
         <p class="form-note" id="bookingDateHint">Choose a green date. Previous dates are hidden.</p>
       </div>
-      <?php if (!empty($booking['aadhaar_image'])): ?><p class="full form-note">Current Aadhaar image: <a href="../<?php echo h($booking['aadhaar_image']); ?>" target="_blank">View image</a></p><?php endif; ?>
+      <?php if (!empty($booking['aadhaar_image'])): ?><p class="full form-note">Current Aadhaar image: <a href="<?php echo h(app_url('../api/client-document.php','admin')); ?>?booking_id=<?php echo (int)$bookingId; ?>" target="_blank" rel="noopener">View image</a></p><?php endif; ?>
       <button class="btn gold" <?php echo !$ready ? 'disabled' : ''; ?>>Save Information</button>
     </form>
   </div>
@@ -218,8 +218,8 @@ if ($isEdit) {
     <?php if (!$isEdit): ?>
       <div class="empty-state">Save the booking information first to set pricing and record payments.</div>
     <?php else: ?>
-    <form class="payment-entry-form payment-workspace" method="POST" action="actions.php">
-      <input type="hidden" name="action" value="save_payment_tab"><input type="hidden" name="apply_rate_card" value="1"><input type="hidden" name="csrf_token" value="<?php echo h(referral_csrf_token()); ?>"><input type="hidden" name="back" value="booking-form.php?id=<?php echo (int)$bookingId; ?>#payments"><input type="hidden" name="booking_id" value="<?php echo (int)$bookingId; ?>">
+    <form class="payment-entry-form payment-workspace" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
+      <input type="hidden" name="action" value="save_payment_tab"><input type="hidden" name="apply_rate_card" value="1"><input type="hidden" name="csrf_token" value="<?php echo h(referral_csrf_token()); ?>"><input type="hidden" name="back" value="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int)$bookingId; ?>#payments"><input type="hidden" name="booking_id" value="<?php echo (int)$bookingId; ?>">
       <div class="payment-editor">
         <section class="payment-card" aria-labelledby="paymentPricingTitle">
           <div class="payment-card-heading"><span class="payment-step">01</span><div><h3 id="paymentPricingTitle">Venue &amp; discount</h3><p>Set the venue fee and any agreed discount.</p></div></div>
@@ -227,7 +227,7 @@ if ($isEdit) {
           <p class="payment-help">The discount applies to the venue fee. Cleaning, electricity and the refundable deposit are added separately.</p>
         </section>
         <section class="payment-card rate-charge-controls" aria-labelledby="paymentChargesTitle">
-          <div class="payment-card-heading"><span class="payment-step">02</span><div><h3 id="paymentChargesTitle">Venue charges</h3><p id="paymentRateBasis">Review the rates and electricity readings.</p></div><a class="payment-text-link" href="rate-card.php" target="_blank" rel="noopener">Rate Card ↗</a></div>
+          <div class="payment-card-heading"><span class="payment-step">02</span><div><h3 id="paymentChargesTitle">Venue charges</h3><p id="paymentRateBasis">Review the rates and electricity readings.</p></div><a class="payment-text-link" href="<?php echo h(app_url('rate-card.php', 'admin')); ?>" target="_blank" rel="noopener">Rate Card ↗</a></div>
           <div class="payment-charge-context"><div class="payment-guests"><label>Guests used for cleaning<input type="number" value="<?php echo (int)($booking['guests']??0); ?>" readonly aria-label="Guests used for cleaning"></label><button type="button" class="payment-text-button" id="editPaymentGuests">Edit guests →</button></div><div class="payment-rate-choice"><label class="rate-refresh"><input type="checkbox" name="refresh_rate_card" id="paymentRefreshRates" value="1"> Use latest Rate Card for this save</label></div></div>
           <div class="payment-meter"><div class="payment-subheading"><h4>Electricity meter</h4><span>Units calculate automatically</span></div><div class="payment-fields payment-fields--meter"><label>Starting meter reading<span class="required-mark" id="electricityStartRequired" aria-hidden="true"> *</span><input type="number" name="electricity_meter_start" id="paymentElectricityStart" min="0" max="9999999999.99" step="0.01" value="<?php echo h($savedRateSnapshot['electricity_meter_start']??''); ?>" placeholder="Please enter starting meter reading"></label><label>Ending meter reading<span class="required-mark" id="electricityEndRequired" aria-hidden="true"> *</span><input type="number" name="electricity_meter_end" id="paymentElectricityEnd" min="0" max="9999999999.99" step="0.01" value="<?php echo h($savedRateSnapshot['electricity_meter_end']??''); ?>" placeholder="Please enter ending meter reading"></label><label>Electricity units (automatic)<input type="number" name="electricity_units" id="paymentElectricityUnits" min="0" max="9999999999.99" step="0.01" readonly value="<?php echo h($savedRateSnapshot['electricity_units']??'0'); ?>" placeholder="Please enter electricity units"><span class="form-note" id="paymentElectricityRate"></span></label></div></div>
                     <?php if($extraRateChoices): ?><div class="extra-charge-grid">
@@ -257,7 +257,7 @@ if ($isEdit) {
     <section class="payment-history-card" aria-labelledby="paymentHistoryTitle"><div class="payment-history-heading"><div><h3 id="paymentHistoryTitle">Payment history</h3><p>Every payment and its verification status in one place.</p></div><span class="payment-history-count"><?php echo count($payments); ?> transaction<?php echo count($payments)===1?'':'s'; ?></span></div>
       <div class="table-wrap payment-history"><table class="payment-history-table"><thead><tr><th>Paid on</th><th>Amount received</th><th>Method &amp; reference</th><th>Verification</th><th>Update verification</th></tr></thead><tbody>
       <?php foreach($payments as$payment): $historyVerification=array_key_exists((string)($payment['verification_status']??''),payment_verification_statuses())?$payment['verification_status']:'pending'; ?>
-        <tr><td><?php echo h(date('d M Y',strtotime($payment['paid_on']))); ?></td><td><strong class="payment-history-amount">Rs <?php echo h(number_format((float)$payment['amount'],2)); ?></strong></td><td><span class="payment-history-method"><?php echo h(payment_modes()[$payment['payment_mode']]??status_label($payment['payment_mode'])); ?></span><small class="payment-reference"><?php echo h($payment['transaction_id']?:'No transaction reference'); ?></small><?php if(!empty($payment['note'])): ?><small class="payment-reference"><?php echo h($payment['note']); ?></small><?php endif; ?></td><td><span class="badge <?php echo h($historyVerification); ?>"><?php echo h(payment_verification_statuses()[$historyVerification]); ?></span></td><td><form class="payment-status-form" method="POST" action="actions.php"><input type="hidden" name="action" value="update_payment"><input type="hidden" name="back" value="booking-form.php?id=<?php echo (int)$bookingId; ?>#payments"><input type="hidden" name="payment_id" value="<?php echo (int)$payment['id']; ?>"><label class="sr-only" for="verify-payment-<?php echo (int)$payment['id']; ?>">Verification status</label><select id="verify-payment-<?php echo (int)$payment['id']; ?>" name="verification_status"><?php foreach(payment_verification_statuses()as$key=>$label): ?><option value="<?php echo h($key); ?>" <?php echo $historyVerification===$key?'selected':''; ?>><?php echo h($label); ?></option><?php endforeach; ?></select><button class="btn">Update</button></form></td></tr>
+        <tr><td><?php echo h(date('d M Y',strtotime($payment['paid_on']))); ?></td><td><strong class="payment-history-amount">Rs <?php echo h(number_format((float)$payment['amount'],2)); ?></strong></td><td><span class="payment-history-method"><?php echo h(payment_modes()[$payment['payment_mode']]??status_label($payment['payment_mode'])); ?></span><small class="payment-reference"><?php echo h($payment['transaction_id']?:'No transaction reference'); ?></small><?php if(!empty($payment['note'])): ?><small class="payment-reference"><?php echo h($payment['note']); ?></small><?php endif; ?></td><td><span class="badge <?php echo h($historyVerification); ?>"><?php echo h(payment_verification_statuses()[$historyVerification]); ?></span></td><td><form class="payment-status-form" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>"><input type="hidden" name="action" value="update_payment"><input type="hidden" name="back" value="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int)$bookingId; ?>#payments"><input type="hidden" name="payment_id" value="<?php echo (int)$payment['id']; ?>"><label class="sr-only" for="verify-payment-<?php echo (int)$payment['id']; ?>">Verification status</label><select id="verify-payment-<?php echo (int)$payment['id']; ?>" name="verification_status"><?php foreach(payment_verification_statuses()as$key=>$label): ?><option value="<?php echo h($key); ?>" <?php echo $historyVerification===$key?'selected':''; ?>><?php echo h($label); ?></option><?php endforeach; ?></select><button class="btn">Update</button></form></td></tr>
       <?php endforeach; ?><?php if(!$payments): ?><tr><td colspan="5"><div class="payment-empty"><strong>No payments recorded yet</strong><span>Use “Record a payment” to add the first instalment.</span></div></td></tr><?php endif; ?>
       </tbody></table></div>
     </section>
@@ -273,9 +273,9 @@ if ($isEdit) {
       <?php if (($booking['booking_status'] ?? '') !== 'event_over'): ?>
         <div class="inspection-reminder">Use this after the event is completed. For best tracking, set booking status to Event Over in the Information tab before sending final penalties.</div>
       <?php endif; ?>
-      <form class="inspection-checklist" method="POST" action="actions.php">
+      <form class="inspection-checklist" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
         <input type="hidden" name="action" value="save_event_inspection">
-        <input type="hidden" name="back" value="booking-form.php?id=<?php echo (int) $bookingId; ?>#inspection">
+        <input type="hidden" name="back" value="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $bookingId; ?>#inspection">
         <input type="hidden" name="booking_id" value="<?php echo (int) $bookingId; ?>">
         <?php
           $checks = [
@@ -297,9 +297,9 @@ if ($isEdit) {
       <div class="penalty-layout">
         <div>
           <h2>Add Penalty</h2>
-          <form class="form-grid friendly-form" method="POST" action="actions.php">
+          <form class="form-grid friendly-form" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
             <input type="hidden" name="action" value="add_penalty">
-            <input type="hidden" name="back" value="booking-form.php?id=<?php echo (int) $bookingId; ?>#inspection">
+            <input type="hidden" name="back" value="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $bookingId; ?>#inspection">
             <input type="hidden" name="booking_id" value="<?php echo (int) $bookingId; ?>">
             <label>Penalty item<input name="penalty_title" required placeholder="3 lights damaged"></label>
             <label>Amount<input name="amount" type="number" min="1" step="0.01" required placeholder="3000"></label>
@@ -322,9 +322,9 @@ if ($isEdit) {
             <td><?php echo h($penalty['penalty_reason']); ?></td>
             <td><strong>Rs <?php echo h(number_format((float) $penalty['amount'])); ?></strong></td>
             <td>
-              <form method="POST" action="actions.php" onsubmit="return confirm('Delete this penalty?');">
+              <form method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>" onsubmit="return confirm('Delete this penalty?');">
                 <input type="hidden" name="action" value="delete_penalty">
-                <input type="hidden" name="back" value="booking-form.php?id=<?php echo (int) $bookingId; ?>#inspection">
+                <input type="hidden" name="back" value="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $bookingId; ?>#inspection">
                 <input type="hidden" name="penalty_id" value="<?php echo (int) $penalty['id']; ?>">
                 <button class="btn red">Delete</button>
               </form>
@@ -363,10 +363,10 @@ if ($isEdit) {
 	    <?php if (!$isEdit): ?>
 	      <div class="empty-state">Save the booking first. Referral details will appear here.</div>
 	    <?php else: ?>
-	      <form class="form-grid friendly-form" method="POST" action="actions.php">
+	      <form class="form-grid friendly-form" method="POST" action="<?php echo h(app_url('actions.php', 'admin')); ?>">
 	        <input type="hidden" name="action" value="save_referral">
             <input type="hidden" name="csrf_token" value="<?php echo h(referral_csrf_token()); ?>">
-	        <input type="hidden" name="back" value="booking-form.php?id=<?php echo (int) $bookingId; ?>#referrals">
+	        <input type="hidden" name="back" value="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $bookingId; ?>#referrals">
 	        <input type="hidden" name="booking_id" value="<?php echo (int) $bookingId; ?>">
 	        <label>Referred by reference / phone<input name="referred_by_reference" id="referralTabReferredBy" value="<?php echo h($booking['referred_by_reference'] ?? ''); ?>" placeholder="Please enter current referral code or member phone"><span class="form-note">Window: <?php echo $referralEligibilityDays > 0 ? (int) $referralEligibilityDays . ' days after the referrer event' : 'No expiry'; ?>.</span><span class="field-warning" id="referralTabReferredByResult"></span></label>
 		        <label>Referrer bonus amount<input type="number" min="0" max="<?php echo h((string) $referralBonusCap); ?>" step="0.01" name="referral_referrer_bonus" value="<?php echo h((string) ((float) ($booking['referral_referrer_bonus'] ?? 0) > 0 ? $booking['referral_referrer_bonus'] : $defaultReferralBonus)); ?>"><span class="form-note">Default Rs <?php echo h(number_format($defaultReferralBonus)); ?>. Max bonus Rs <?php echo h(number_format($referralBonusCap)); ?>.</span></label>
@@ -376,14 +376,14 @@ if ($isEdit) {
 	        <button class="btn gold">Save Referral</button>
 	      </form>
 	      <div class="summary-strip" style="margin-top:20px">
-	        <div><span>Current referral code</span><strong><?php echo h($memberReferralCode['code'] ?? ''); ?></strong><a href="referrals.php?member=<?php echo (int)$bookingId; ?>">Manage code &amp; view logs</a></div>
+	        <div><span>Current referral code</span><strong><?php echo h($memberReferralCode['code'] ?? ''); ?></strong><a href="<?php echo h(app_url('referrals.php', 'admin')); ?>?member=<?php echo (int)$bookingId; ?>">Manage code &amp; view logs</a></div>
 		        <div><span>Current code uses</span><strong><?php echo (int)($memberReferralCode['usage_count'] ?? 0); ?> / <?php echo (int)($memberReferralCode['usage_limit'] ?? 0); ?></strong><span><?php echo h($memberReferralCode ? ucfirst(referral_code_state($memberReferralCode)) : ''); ?></span></div>
 	        <div><span>Eligibility</span><strong><?php echo !empty($booking['referral_eligible']) ? 'Eligible' : 'Not eligible'; ?></strong></div>
 	      </div>
 	      <?php if ($referrerBooking): ?>
 	        <div class="accepted-term">
 	          <span class="term-check" aria-hidden="true">&#8592;</span>
-	          <div><strong>Referred by <?php echo h($referrerBooking['client_name']); ?></strong><p><?php echo h($referrerBooking['booking_reference']); ?> - <?php echo h($referrerBooking['event_type'] ?: 'Event'); ?> on <?php echo h($referrerBooking['event_date']); ?></p><small><a href="booking-form.php?id=<?php echo (int) $referrerBooking['id']; ?>">Open referrer booking</a></small></div>
+	          <div><strong>Referred by <?php echo h($referrerBooking['client_name']); ?></strong><p><?php echo h($referrerBooking['booking_reference']); ?> - <?php echo h($referrerBooking['event_type'] ?: 'Event'); ?> on <?php echo h($referrerBooking['event_date']); ?></p><small><a href="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $referrerBooking['id']; ?>">Open referrer booking</a></small></div>
 	        </div>
 	      <?php endif; ?>
 	      <div class="table-wrap payment-history"><table><thead><tr><th>Referred member</th><th>Event</th><th>Eligibility</th><th>Bonuses</th><th>Manage</th></tr></thead><tbody>
@@ -393,7 +393,7 @@ if ($isEdit) {
 	            <td><?php echo h($referral['event_type'] ?: 'Event'); ?><br><?php echo h($referral['event_date']); ?></td>
 	            <td><?php echo !empty($referral['referral_eligible']) ? 'Eligible' : 'Not eligible'; ?></td>
 	            <td>Referrer: Rs <?php echo h(number_format((float) $referral['referral_referrer_bonus'])); ?><br>New member: Rs <?php echo h(number_format((float) $referral['referral_referred_bonus'])); ?></td>
-	            <td><a class="btn" href="booking-form.php?id=<?php echo (int) $referral['id']; ?>#referrals">Open</a></td>
+	            <td><a class="btn" href="<?php echo h(app_url('booking-form.php', 'admin')); ?>?id=<?php echo (int) $referral['id']; ?>#referrals">Open</a></td>
 	          </tr>
 	        <?php endforeach; ?>
 	        <?php if (!$referrals): ?><tr><td colspan="5">No bookings have used this member's reference yet.</td></tr><?php endif; ?>
@@ -477,7 +477,7 @@ if ($isEdit) {
 		        details: '1'
 		      });
 		      try {
-		        const response = await fetch('../api/contact-check.php?' + params.toString(), {
+		        const response = await fetch('<?php echo app_url('../api/contact-check.php', 'admin'); ?>?' + params.toString(), {
 		          headers: { 'X-Requested-With': 'fetch' }
 		        });
 			        const data = await response.json();
@@ -550,7 +550,7 @@ if ($isEdit) {
       }
       render('Checking referral member...');
       try {
-        const response = await fetch('../api/referral-lookup.php?q=' + encodeURIComponent(value) + '&exclude_id=' + encodeURIComponent(currentBookingId), {
+        const response = await fetch('<?php echo app_url('../api/referral-lookup.php', 'admin'); ?>?q=' + encodeURIComponent(value) + '&exclude_id=' + encodeURIComponent(currentBookingId), {
           headers: { Accept: 'application/json' },
           cache: 'no-store'
         });
@@ -713,7 +713,7 @@ if ($isEdit) {
 
       let booked = new Map();
       try {
-        const availabilityUrl = '../api/availability.php?month=' + encodeURIComponent(currentMonthKey)
+        const availabilityUrl = '<?php echo app_url('../api/availability.php', 'admin'); ?>?month=' + encodeURIComponent(currentMonthKey)
           + (currentBookingId ? '&exclude_booking_id=' + encodeURIComponent(currentBookingId) : '');
         const response = await fetch(availabilityUrl, {
           headers: { 'X-Requested-With': 'fetch' }
@@ -843,7 +843,7 @@ if ($isEdit) {
 	      const requestId = ++adminPinLookupRequest;
 	      adminPinHint.textContent = 'Fetching area details...';
 	      try {
-		        const response = await fetch('../api/pincode.php?pin=' + encodeURIComponent(pin), {
+		        const response = await fetch('<?php echo app_url('../api/pincode.php', 'admin'); ?>?pin=' + encodeURIComponent(pin), {
 		          headers: { Accept: 'application/json' },
 		          cache: 'no-store'
 		        });

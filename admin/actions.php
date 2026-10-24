@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../includes/admin_layout.php';
 require_admin();
+if(($_SERVER['REQUEST_METHOD'] ?? '')!=='POST'){
+    set_flash('error','Please use an admin form to make changes.');redirect('dashboard.php');
+}
 
 if (!db_ready()) {
     set_flash('error', 'Database is not ready. Import database.sql first.');
@@ -17,14 +20,22 @@ ensure_referral_schema();
 ensure_pricing_history_schema();
 
 $action = $_POST['action'] ?? '';
-$back = $_POST['back'] ?? 'dashboard.php';
+$back=is_string($_POST['back'] ?? null)?$_POST['back']:'dashboard.php';
+$back=preg_match('/[\x00-\x1f\x7f]/',$back)?app_url('dashboard.php','admin'):app_url($back,'admin');
+if(parse_url($back,PHP_URL_HOST)!==null||!str_starts_with($back,app_url('admin/','')))$back=app_url('dashboard.php','admin');
+$mailContext = mail_capture_action((string)$action, $_POST);
+$bulkJson=$action==='save_packages_bulk' && str_contains($_SERVER['HTTP_ACCEPT'] ?? '','application/json');
+$actionError='';
 
 try {
+    require_referral_csrf();
+    validate_admin_required_spacing((string)$action, $_POST);
     $referralTransaction = in_array($action, ['save_booking_details','save_referral','add_booking','quick_update_booking_status','update_booking','replace_referral_code','save_referral_settings','save_rate_setting','delete_rate_setting'], true);
     if ($referralTransaction) {
         db()->beginTransaction();
         db()->query("SELECT setting_key FROM rate_card_settings WHERE setting_key='referral_code_usage_limit' FOR UPDATE")->fetch();
     }
+    if(in_array($action,['save_booking_details','add_booking','quick_update_booking_status','update_booking'],true))validate_admin_booking_request($_POST);
     if (in_array($action,['save_payment_tab','add_payment','update_payment'],true)) {
         db()->beginTransaction();
         $paymentBookingId=(int)($_POST['booking_id'] ?? 0);
@@ -59,7 +70,13 @@ try {
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('Please enter a valid email address.');
         }
-        $duplicateContactMessage = duplicate_booking_contact_message($phone, $email, $bookingId > 0 ? $bookingId : null, $whatsappNumber ?? '');
+        $sameCustomerPhone='';
+        if($bookingId>0){
+            $original=db()->prepare('SELECT phone FROM event_bookings WHERE id=?');$original->execute([$bookingId]);
+            $originalPhone=$original->fetchColumn();
+            if($originalPhone && customer_phone($originalPhone)===$phone)$sameCustomerPhone=$phone;
+        }
+        $duplicateContactMessage = duplicate_booking_contact_message($phone, $email, $bookingId > 0 ? $bookingId : null, $whatsappNumber ?? '', false, $sameCustomerPhone);
         if ($duplicateContactMessage !== '') {
             throw new RuntimeException($duplicateContactMessage);
         }
@@ -166,18 +183,9 @@ try {
                 $currentBooking['referral_note'] ?? null);
         }
 
-        if ($bookingStatus === 'cancelled') {
-            $stmt = db()->prepare("SELECT event_date FROM event_bookings WHERE id=?");
-            $stmt->execute([$bookingId]);
-            $eventDate = $stmt->fetchColumn();
-            if ($eventDate) {
-                $stmt = db()->prepare("UPDATE event_bookings SET booking_status='cancelled' WHERE event_date=? AND booking_status <> 'cancelled'");
-                $stmt->execute([$eventDate]);
-            }
-        }
-
         sync_cancelled_referrals();
         db()->commit();
+        notify_admin_action((string)$action, $_POST, $mailContext, (int)$bookingId);
         redirect('booking-form.php?id=' . $bookingId . ($createdBooking ? '#payments' : ''));
     } elseif ($action === 'quick_update_booking_status') {
         $bookingId = (int) $_POST['booking_id'];
@@ -196,16 +204,6 @@ try {
             $paymentStatus,
             $bookingId,
         ]);
-
-        if ($bookingStatus === 'cancelled') {
-            $stmt = db()->prepare("SELECT event_date FROM event_bookings WHERE id=?");
-            $stmt->execute([$bookingId]);
-            $eventDate = $stmt->fetchColumn();
-            if ($eventDate) {
-                $stmt = db()->prepare("UPDATE event_bookings SET booking_status='cancelled' WHERE event_date=? AND booking_status <> 'cancelled'");
-                $stmt->execute([$eventDate]);
-            }
-        }
 
         set_flash('ok', 'Status updated.');
     } elseif ($action === 'save_referral') {
@@ -293,16 +291,6 @@ try {
             $proposalNote,
             $bookingId,
         ]);
-
-        if ($bookingStatus === 'cancelled') {
-            $stmt = db()->prepare("SELECT event_date FROM event_bookings WHERE id=?");
-            $stmt->execute([$bookingId]);
-            $eventDate = $stmt->fetchColumn();
-            if ($eventDate) {
-                $stmt = db()->prepare("UPDATE event_bookings SET booking_status='cancelled' WHERE event_date=? AND booking_status <> 'cancelled'");
-                $stmt->execute([$eventDate]);
-            }
-        }
 
         set_flash('ok', 'Booking updated.');
     } elseif ($action === 'add_payment') {
@@ -456,23 +444,32 @@ try {
         $stmt->execute([trim($_POST['client_name']), trim($_POST['event_type']), (int) $_POST['rating'], trim($_POST['review_text'])]);
         set_flash('ok', 'Review added.');
     } elseif ($action === 'add_gallery') {
-        $image = upload_image('gallery_image', 'uploads/gallery');
-        if (!$image) {
-            throw new RuntimeException('Please upload JPG, PNG or WEBP image.');
-        }
         $category = trim($_POST['new_category'] ?? '');
-        if ($category !== '') {
-            $stmt = db()->prepare('INSERT INTO gallery_categories (category_name, display_order, is_active) VALUES (?, 10, 1) ON DUPLICATE KEY UPDATE is_active=1');
-            $stmt->execute([$category]);
-        } else {
+        if ($category === '') {
             $category = trim($_POST['category'] ?? '');
         }
         if ($category === '') {
             throw new RuntimeException('Please select or add a category.');
         }
+        $title=trim((string)($_POST['title'] ?? ''));
+        if($title===''||mb_strlen($title)>180||mb_strlen($category)>120)throw new RuntimeException('Please enter a valid image title and category.');
+        $image=upload_image('gallery_image','uploads/gallery');
+        if(!$image)throw new RuntimeException('Please upload a JPG, PNG or WEBP image.');
+        if(trim($_POST['new_category'] ?? '')!==''){
+            $stmt=db()->prepare('INSERT INTO gallery_categories(category_name,display_order,is_active) VALUES (?,10,1) ON DUPLICATE KEY UPDATE is_active=1');$stmt->execute([$category]);
+        }
         $stmt = db()->prepare("INSERT INTO gallery_images (title, category, image_path, display_order, is_active) VALUES (?, ?, ?, ?, 1)");
         $stmt->execute([trim($_POST['title']), $category, $image, (int) $_POST['display_order']]);
         set_flash('ok', 'Gallery image added.');
+    } elseif ($action === 'save_gallery_image') {
+        reject_required_leading_spaces($_POST,['title'=>'Image title','category'=>'Category']);
+        $title=trim((string)($_POST['title'] ?? ''));$category=trim((string)($_POST['category'] ?? ''));
+        if($title===''||mb_strlen($title)>180||$category===''||mb_strlen($category)>120)throw new RuntimeException('Please enter an image title and category within their length limits.');
+        $order=filter_var($_POST['display_order'] ?? '',FILTER_VALIDATE_INT);
+        if($order===false)throw new RuntimeException('Please enter a whole number for image sequence.');
+        $stmt=db()->prepare('UPDATE gallery_images SET title=?,category=?,display_order=?,is_active=? WHERE id=?');
+        $stmt->execute([$title,$category,$order,isset($_POST['is_active'])?1:0,(int)($_POST['image_id'] ?? 0)]);
+        set_flash('ok','Gallery image updated.');
     } elseif ($action === 'save_gallery_category') {
         $categoryName = trim($_POST['category_name'] ?? '');
         if ($categoryName === '') {
@@ -524,6 +521,12 @@ try {
         $stmt = db()->prepare('UPDATE blog_images SET is_active=0 WHERE id=?');
         $stmt->execute([$imageId]);
         set_flash('ok', 'Blog image removed from the public page.');
+    } elseif ($action === 'save_packages_bulk') {
+        require_referral_csrf();
+        if(($_POST['submission_complete'] ?? '')!=='1')throw new RuntimeException('The package changes were incomplete. Please save fewer rows at once.');
+        if(!is_array($_POST['packages'] ?? [])||!is_array($_POST['deleted_packages'] ?? []))throw new RuntimeException('Please enter valid package changes.');
+        $bulkResult=save_packages_bulk($_POST['packages'] ?? [],$_POST['deleted_packages'] ?? []);
+        set_flash('ok','Package changes saved. '.$bulkResult['added'].' added, '.$bulkResult['updated'].' updated, '.$bulkResult['removed'].' removed.');
     } elseif ($action === 'save_package') {
         $packageId = (int) ($_POST['package_id'] ?? 0);
         $name = trim($_POST['package_name'] ?? '');
@@ -645,14 +648,21 @@ try {
         $stmt = db()->prepare('DELETE FROM site_terms WHERE id=?');
         $stmt->execute([(int) $_POST['term_id']]);
         set_flash('ok', 'Terms deleted.');
-    }
+    } else throw new RuntimeException('This admin action is not supported. Please refresh the page and try again.');
     if (db()->inTransaction()) {
         if ($referralTransaction) sync_cancelled_referrals();
         db()->commit();
     }
+    notify_admin_action((string)$action, $_POST, $mailContext, (int)($bookingId ?? 0));
 } catch (Throwable $e) {
     if (db()->inTransaction()) db()->rollBack();
+    $actionError=$e->getMessage();
     set_flash('error', $e->getMessage());
 }
 
+if($bulkJson){
+    header('Content-Type: application/json');header('Cache-Control: no-store');
+    if($actionError!==''){http_response_code(422);unset($_SESSION['flash']);}
+    echo json_encode(['ok'=>$actionError==='','error'=>$actionError,'counts'=>$bulkResult ?? null]);exit;
+}
 redirect($back);

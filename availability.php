@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/admin_auth.php';
 
 $ready = db_ready();
 if ($ready) {
@@ -81,13 +82,19 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire']))
     ], $bookingRequiredTerms), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     $requestedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
     $guestCount = (int) $guests;
-    $duplicateContactMessage = duplicate_booking_contact_message($phone, $email, null, $whatsapp);
+    $returningCustomer=returning_customer_context($phone);
+    $duplicateContactMessage = duplicate_booking_contact_message($phone, $email, null, $whatsapp, false, $returningCustomer['phone'] ?? '');
 
     $check = db()->prepare("SELECT COUNT(*) FROM event_bookings WHERE event_date = ? AND booking_status <> 'cancelled'");
     $check->execute([$selectedDate]);
     $referrerExists = $referralInput === '' || $referredBy !== '';
 
-    if ($name === '' || $phone === '' || $email === '' || $pin === '' || $selectedDate === '' || $eventType === '' || $guests === '') {
+    $spacingError=required_leading_space_error($_POST,['name'=>'Full name','phone'=>'Mobile number','email'=>'Email','pin_code'=>'PIN code','guests'=>'Expected guests','event_date'=>'Event date','event_date_visible'=>'Event date','event_type'=>'Occasion','package_id'=>'Package']);
+    if ($spacingError !== '') {
+        $formError = $spacingError;
+    } elseif ($returningCustomer && !hash_equals(referral_csrf_token(),(string)($_POST['customer_token'] ?? ''))) {
+        $formError = 'Your customer verification session changed. Refresh the page and load your details again.';
+    } elseif ($name === '' || $phone === '' || $email === '' || $pin === '' || $selectedDate === '' || $eventType === '' || $guests === '') {
         $formError = 'Please complete all required fields and select an available date.';
     } elseif (!preg_match('/^\d{10}$/', $phone)) {
         $formError = 'Please enter a valid 10-digit mobile number.';
@@ -113,12 +120,17 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire']))
         $formError = 'Your guest count is outside the selected package range. Please use the package suggested by guest count.';
     } elseif (!$referrerExists) {
         $formError = 'Please enter a valid eligible referral reference, or leave it blank.';
+    } elseif ($returningCustomer && $referralInput!=='') {
+        $formError = 'Returning customers can book again, but cannot claim a new-member referral. Please leave the referral field blank.';
     } elseif ($requiredTermIds && count($acceptedRequiredIds) !== count($requiredTermIds)) {
         $formError = 'Please accept all three booking terms.';
 	    } else {
         try {
         db()->beginTransaction();
         db()->query("SELECT setting_key FROM rate_card_settings WHERE setting_key='referral_code_usage_limit' FOR UPDATE")->fetch();
+        $dateLock=db()->prepare("SELECT id FROM event_bookings WHERE event_date=? AND booking_status<>'cancelled' LIMIT 1 FOR UPDATE");
+        $dateLock->execute([$selectedDate]);
+        if($dateLock->fetchColumn())throw new RuntimeException('This date is already on hold or booked. Please choose another available date.');
 	        $package = $packageMap[$packageId];
 	        $bookingReference = generate_unique_booking_reference($name);
 	        $referrerBonus = $referredBy !== '' ? referral_referrer_bonus_for($referredBy) : 0;
@@ -150,9 +162,14 @@ if ($ready && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enquire']))
 	            $newMemberBonus,
 	        ]);
         $bookingId = (int) db()->lastInsertId();
+        if($returningCustomer){
+            db()->prepare('UPDATE event_bookings SET returning_customer_booking_id=? WHERE id=?')->execute([$returningCustomer['booking_id'],$bookingId]);
+        }
         $ownReferralCode = member_referral_code($bookingId);
         save_booking_referral($bookingId, $referralInput);
         db()->commit();
+        unset($_SESSION['returning_customer']);
+        notify_public_booking($bookingId);
         $message = "Hi Anantha Event Lawns, I submitted enquiry {$bookingReference}.\n"
                  . "Name: {$name}\nMobile: {$phone}\nWhatsApp: " . ($whatsapp ?: $phone) . "\n"
 	                 . "Email: " . ($email ?: 'Not shared') . "\nPIN: {$pin}\n"
@@ -201,7 +218,7 @@ if ($selectedDate) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Check Availability | <?php echo h(SITE_NAME); ?></title>
-<link rel="icon" href="assets/logo.jpeg">
+<link rel="icon" href="<?php echo h(app_url('assets/logo.jpeg', '')); ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -209,14 +226,14 @@ if ($selectedDate) {
 :root{--deep:#142f28;--leaf:#2e6b58;--gold:#d9a050;--paper:#f8f3e8;--ink:#1b2a24;--muted:#65736c;--line:rgba(20,47,40,.14);--cream:#e4dac3;--green:#2e6b58;--yellow:#d9a050;--red:#bd453d;--gray:#918b80;--shadow:0 26px 64px -36px rgba(20,47,40,.62)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#fffaf0 0,#f8f3e8 62%,#eef5ef 100%);color:var(--ink);overflow-x:hidden}a{text-decoration:none;color:inherit}.container,.wrap{width:min(1180px,calc(100% - 36px));margin:auto}
 header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition:background .4s ease,padding .4s ease,box-shadow .4s ease}header.scrolled{background:rgba(23,51,43,.92);backdrop-filter:blur(10px);padding:12px 0;box-shadow:0 10px 30px -20px rgba(0,0,0,.4)}.nav{display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{display:flex;align-items:center;gap:10px}.brand img{height:44px;width:44px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(228,218,195,.28)}.brand span{font-family:'Inter',sans-serif;letter-spacing:.04em;font-size:1.08rem;color:var(--cream)}.nav-links{display:flex;gap:24px;list-style:none;margin:0;padding:0}.nav-links a{color:var(--cream);font-size:.88rem;font-weight:500;position:relative;padding-bottom:4px}.nav-links a:after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--gold);transition:width .3s ease}.nav-links a:hover:after,.nav-links a.active:after{width:100%}.menu-toggle{display:none;width:44px;height:44px;border-radius:50%;border:1px solid rgba(228,218,195,.32);background:rgba(23,51,43,.28);color:var(--cream);cursor:pointer;place-items:center}.menu-toggle span,.menu-toggle span:before,.menu-toggle span:after{display:block;width:19px;height:2px;border-radius:2px;background:currentColor;content:"";transition:transform .3s ease,opacity .3s ease}.menu-toggle span:before{transform:translateY(-7px)}.menu-toggle span:after{transform:translateY(5px)}.menu-toggle.is-open span{background:transparent}.menu-toggle.is-open span:before{transform:translateY(2px) rotate(45deg)}.menu-toggle.is-open span:after{transform:translateY(0) rotate(-45deg)}.menu-close-row{display:none}.menu-close{width:44px;height:44px;border-radius:50%;border:1px solid rgba(228,218,195,.32);background:rgba(255,255,255,.06);color:var(--cream);font-size:1.7rem;line-height:1;cursor:pointer}.nav-backdrop{position:fixed;inset:0;z-index:99;background:rgba(8,28,23,.54);opacity:0;pointer-events:none;transition:opacity .3s ease}.nav-backdrop.open{opacity:1;pointer-events:auto}
-.hero{padding:120px 0 30px;background:linear-gradient(90deg,rgba(20,47,40,.9),rgba(20,47,40,.58)),url('assets/hero-nature-event-optimized.jpg') center/cover;color:#fff}.eyebrow{font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:#f1cf8f;font-weight:800}.hero h1{font-family:'Inter',sans-serif;font-size:clamp(2.35rem,5vw,4.5rem);line-height:1;margin:8px 0 12px}.hero p{max-width:620px;color:rgba(255,255,255,.88);line-height:1.7}
+.hero{padding:120px 0 30px;background:linear-gradient(90deg,rgba(20,47,40,.9),rgba(20,47,40,.58)),url('<?php echo h(app_url('assets/hero-nature-event-optimized.jpg')); ?>') center/cover;color:#fff}.eyebrow{font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:#f1cf8f;font-weight:800}.hero h1{font-family:'Inter',sans-serif;font-size:clamp(2.35rem,5vw,4.5rem);line-height:1;margin:8px 0 12px}.hero p{max-width:620px;color:rgba(255,255,255,.88);line-height:1.7}
 .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:26px;max-width:760px}.step{display:flex;gap:12px;align-items:center;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:14px;background:rgba(255,255,255,.1);color:#fff}.step strong{font-family:'Inter',sans-serif;color:#f1cf8f}.step span{display:block;font-weight:800}.step small{display:block;color:rgba(255,255,255,.68)}
 .screen{padding:30px 0 74px}.flow{display:grid;grid-template-columns:1fr;gap:22px;align-items:start}.panel{background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.84);border-radius:8px;box-shadow:var(--shadow);padding:24px}.panel h2{font-family:'Inter',sans-serif;color:var(--deep);font-size:1.7rem;margin:0}.panel p{color:var(--muted);line-height:1.65}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}.field-group{grid-column:1/-1;border:1px solid var(--line);border-radius:8px;background:#fffdf8;padding:16px}.field-group-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.field-group-title strong{color:var(--deep);font-family:'Inter',sans-serif;font-size:1.1rem}.field-group-title span{color:var(--muted);font-size:.82rem}.field-group .form-grid{margin-top:0}.field-group label.full{grid-column:auto}.full{grid-column:1/-1}label{display:block;font-size:.78rem;font-weight:800;color:#4f5d56}input,select,textarea{width:100%;margin-top:7px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:0 13px;font:inherit}input,select{height:48px}textarea{min-height:96px;padding:12px 13px;resize:vertical}.hint{display:block;font-size:.82rem;color:var(--muted);margin-top:6px}.same-number{display:flex;align-items:center;gap:7px;margin-top:7px;color:var(--muted);font-size:.82rem;font-weight:800}.same-number input{width:auto;height:auto;margin:0}.selected-date{display:flex;justify-content:space-between;gap:14px;align-items:center;border:1px solid var(--line);border-radius:8px;background:#fbfaf5;padding:14px;margin-top:16px}.selected-date strong{color:var(--deep)}.btn{border:0;border-radius:999px;background:var(--deep);color:#fff;padding:12px 18px;font-weight:800;cursor:pointer;display:inline-flex;justify-content:center;align-items:center;text-align:center}.btn.gold{background:var(--gold);color:#25190b}.btn.full{width:100%}.msg{padding:13px 14px;border-radius:8px;margin-top:14px;line-height:1.45}.err{background:#fae2de;color:#9a2f27}.ok{background:#e4f4ec;color:#176244}.terms-check{display:flex;gap:10px;align-items:flex-start}.terms-check input{width:auto;margin-top:4px}.terms-check a{text-decoration:underline;color:var(--deep)}
 .side-card{position:sticky;top:96px}.price-box{margin-top:16px;border-radius:8px;background:var(--deep);color:var(--cream);padding:18px}.price-box strong{display:block;color:#fff;font-size:1.15rem}.price-box span{display:block;margin-top:6px;color:rgba(228,218,195,.76);line-height:1.5}.price-value{font-family:'Inter',sans-serif;font-size:2rem;color:#fff;margin-top:12px}.lock{margin-top:12px;color:#f1cf8f;font-weight:800}
 .calendar{margin-top:20px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}.cal-head{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--deep);color:#fff;padding:18px}.cal-head h2{font-family:'Inter',sans-serif;margin:3px 0 0;font-size:1.9rem}.arrows{display:flex;gap:8px}.arrows a{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12);font-size:1.3rem}.cal-body{padding:14px}.week,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.week{margin-bottom:8px}.week span{text-align:center;font-size:.76rem;font-weight:900;color:#68766f}.day{min-height:76px;border:1px solid var(--line);border-radius:8px;background:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:9px;position:relative}.day.empty{background:transparent;border:0}.day.available{background:#eef8f1;border-color:rgba(46,107,88,.26)}.day.hold,.day.confirmed{background:#fff4d8;color:#6f4b00;border-color:#e6c879}.day.past{background:#f1e5d6;color:#8a7356;border-color:#ddc8ad}.day.selected{outline:4px solid var(--gold);box-shadow:0 0 0 5px rgba(217,160,80,.18),0 18px 30px -24px rgba(20,47,40,.85)}.day.available:hover{transform:translateY(-3px);box-shadow:0 14px 28px -22px rgba(46,107,88,.8)}.day .num{font-weight:900}.day .tag{font-size:.62rem;font-weight:900;text-transform:uppercase}.available .tag{color:var(--green)}.hold .tag,.confirmed .tag{color:#6f4b00}.past .tag{color:#8a7356}.legend{display:flex;flex-wrap:wrap;gap:14px;padding:0 14px 16px;color:#5e6d66;font-size:.9rem}.dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:7px}.green{background:var(--green)}.yellow{background:#d9a050}.red{background:var(--red)}.gray{background:#c9aa84}.calendar-note{padding:0 14px 16px;color:var(--muted);font-size:.9rem}
 @media(max-width:980px){.flow{grid-template-columns:1fr}.side-card{position:static}.steps{grid-template-columns:1fr}}@media(max-width:860px){.nav-links{position:fixed;top:0;right:0;z-index:101;height:100vh;width:min(320px,86vw);background:#17332b;flex-direction:column;padding:100px 32px 32px;transform:translateX(100%);transition:transform .4s ease;gap:22px;box-shadow:-24px 0 50px -28px rgba(0,0,0,.65)}.nav-links.open{transform:translateX(0)}.menu-toggle{display:grid}.menu-close-row{display:flex;justify-content:flex-end;position:absolute;top:22px;right:24px}body.menu-open{overflow:hidden}}@media(max-width:640px){.container,.wrap{width:min(100% - 26px,1180px)}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding-top:116px}.day{min-height:58px;padding:6px}.week,.days{gap:5px}.day .tag{display:none}.panel{padding:18px}.cal-head{align-items:flex-start;flex-direction:column}}
 	.field-warning{display:none;margin-top:8px;border-radius:8px;padding:10px 12px;font-size:.88rem;line-height:1.45}.field-warning.show{display:block}.field-warning.err{background:#fae2de;color:#9a2f27}.field-warning.ok{background:#e4f4ec;color:#176244}.package-summary{grid-column:1/-1;border:1px solid var(--line);border-radius:8px;background:#fbfaf5;padding:14px;display:block}.package-summary strong{display:block;color:var(--deep)}.package-summary span{display:block;color:var(--muted);font-size:.9rem;margin-top:4px}.discount-line{display:none;color:#176244;font-weight:800;font-size:.88rem;line-height:1.45;margin-top:7px}.discount-line.show{display:block}.venue-facts{display:grid;gap:10px;margin-top:16px}.venue-facts div{border:1px solid var(--line);border-radius:8px;background:#fbfaf5;padding:12px}.venue-facts strong{display:block;color:var(--deep)}.venue-facts span{display:block;color:var(--muted);font-size:.88rem;margin-top:3px}
-		.booking-terms{border:1px solid var(--line);border-radius:8px;background:#fffdf8;padding:10px;display:grid;gap:7px}.booking-terms .field-group-title{margin-bottom:0}.booking-terms .terms-check{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;border:1px solid rgba(20,47,40,.1);border-radius:8px;background:#fff;padding:8px 10px;min-height:42px}.booking-terms .terms-check input{width:14px;height:14px;margin:0}.booking-terms .terms-check strong{display:block;color:var(--deep);font-size:.82rem;margin-bottom:0}.booking-terms .terms-check span{color:var(--muted);font-size:.82rem;line-height:1.35}.terms-link{width:max-content;color:var(--deep);font-size:.9rem;font-weight:800;text-decoration:underline}
+		.booking-terms{border:1px solid var(--line);border-radius:8px;background:#fffdf8;padding:10px;display:grid;gap:7px}.booking-terms .field-group-title{margin-bottom:0}.booking-terms .terms-check{display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;align-items:start;border:1px solid rgba(20,47,40,.1);border-radius:8px;background:#fff;padding:8px 10px;min-height:42px}.booking-terms .terms-check input{width:14px;height:14px;margin:2px 0 0}.booking-terms .terms-check strong{display:block;color:var(--deep);font-size:.82rem;margin-bottom:0}.booking-terms .terms-check span{color:var(--muted);font-size:.82rem;line-height:1.35}.terms-link{width:max-content;color:var(--deep);font-size:.9rem;font-weight:800;text-decoration:underline}
 	.reference-check{display:grid;gap:10px;margin-top:16px;border:1px solid var(--line);border-radius:8px;background:#fffdf8;padding:14px}.reference-check .btn{border-radius:8px}.reference-result{display:grid;gap:4px;margin-top:12px;border-radius:8px;padding:12px;line-height:1.45}.reference-result strong{color:var(--deep)}.reference-result span{color:inherit;font-size:.9rem}
 	.nav-links a:hover,.nav-links a.active{color:var(--gold);font-weight:800}
 /* Wide booking workspace */
@@ -233,6 +250,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 #submitEnquiry:disabled{cursor:not-allowed;opacity:.55}
 @media(max-width:980px){.screen{width:min(100% - 26px,900px)}}
 .required-mark{color:var(--red)}
+.returning-customer{margin:0 0 16px;padding:12px 14px;border:1px solid #dfdfcf;border-radius:8px;background:#fbfaf5}.returning-customer summary{cursor:pointer;color:var(--deep);font-size:14px;font-weight:600}.returning-customer p{font-size:13px;margin:10px 0;color:var(--muted)}.returning-lookup-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}.returning-lookup-row .btn{margin-top:25px;min-height:48px}.returning-customer #returningStatus:empty{display:none}.returning-customer #returningStatus{color:#176244}.returning-customer input[aria-invalid=true]{border-color:#c44d43}@media(max-width:560px){.returning-lookup-row{grid-template-columns:1fr}.returning-lookup-row .btn{margin-top:0;width:100%}}
 </style>
 </head>
 <body>
@@ -252,16 +270,26 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
     <div class="panel">
       <h2>Your enquiry</h2>
       <?php if ($formError): ?><div class="msg err"><?php echo h($formError); ?></div><?php endif; ?>
-      <?php if ($success): ?><div class="msg ok"><?php echo h($success); ?></div><p style="margin-top:12px"><a class="btn gold" href="<?php echo h($waLink); ?>" target="_blank" rel="noopener">Verify on WhatsApp</a></p><?php endif; ?>
+      <?php if ($success): ?><div class="msg ok"><?php echo h($success); ?></div><p style="margin-top:12px"><a class="btn gold" href="<?php echo h(app_url((string)($waLink), "")); ?>" target="_blank" rel="noopener">Verify on WhatsApp</a></p><?php endif; ?>
 
 	      <form method="POST" action="#enquiry" id="enquiry">
+	        <input type="hidden" name="customer_token" value="<?php echo h(referral_csrf_token()); ?>">
 	        <input type="hidden" name="event_date" id="eventDate" value="<?php echo h($selectedDate); ?>">
 	        <div class="form-grid">
 	          <div class="field-group">
 	            <div class="field-group-title"><strong>Contact details</strong><span>We use this to call and verify on WhatsApp.</span></div>
+	            <details class="returning-customer" id="returningCustomer">
+	              <summary>Booked with us before? Load your contact details</summary>
+	              <p>Enter your mobile number below and your previous booking reference to verify your details. This enquiry will be saved as a new booking.</p>
+	              <div class="returning-lookup-row">
+	                <label>Previous booking reference<input id="returningReference" autocomplete="off" aria-describedby="returningError" placeholder="Please enter previous booking reference"><span id="returningError" class="form-field-error" role="alert" hidden></span></label>
+	                <button type="button" class="btn" id="loadCustomerDetails">Load my details</button>
+	              </div>
+	              <p id="returningStatus" role="status" aria-live="polite"></p>
+	            </details>
 	            <div class="form-grid">
-		              <label>Full name <span class="required-mark" aria-hidden="true">*</span><input name="name" required value="<?php echo h($name); ?>" placeholder="Please enter full name"></label>
-			              <label>Mobile number <span class="required-mark" aria-hidden="true">*</span><input type="tel" name="phone" id="phoneInput" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" value="<?php echo h($phone); ?>" placeholder="10-digit mobile"><span class="field-warning err" id="contactWarning"></span></label>
+		              <label>Mobile number <span class="required-mark" aria-hidden="true">*</span><input type="tel" name="phone" id="phoneInput" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" value="<?php echo h($phone); ?>" placeholder="10-digit mobile"><span class="field-warning err" id="contactWarning"></span></label>
+			              <label>Full name <span class="required-mark" aria-hidden="true">*</span><input name="name" required value="<?php echo h($name); ?>" placeholder="Please enter full name"></label>
 					              <label>WhatsApp number (optional)<input type="tel" name="whatsapp_number" id="whatsappInput" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel" value="<?php echo h($whatsapp); ?>" placeholder="WhatsApp number"><span class="same-number"><input type="checkbox" id="sameAsMobile"> Same as mobile number</span><span class="field-warning err" id="whatsappWarning"></span></label>
 				              <label>Email <span class="required-mark" aria-hidden="true">*</span><input type="email" name="email" id="emailInput" required autocomplete="email" value="<?php echo h($email); ?>" placeholder="name@example.com"><span class="field-warning err" id="emailWarning"></span></label>
 			              <label>PIN code <span class="required-mark" aria-hidden="true">*</span><input type="tel" name="pin_code" id="pinCode" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" value="<?php echo h($pin); ?>" placeholder="Please enter PIN code"><span class="hint" id="pinHint">Area, city and state auto-fill after 6 digits.</span></label>
@@ -285,10 +313,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 			            <?php foreach ($bookingRequiredTerms as $term): ?>
 		              <label class="terms-check">
 		                <input type="checkbox" name="accept_terms[]" value="<?php echo (int) $term['id']; ?>" required <?php echo in_array((int) $term['id'], $acceptedTermIds, true) ? 'checked' : ''; ?>>
-			                <span><?php echo h($term['term_text']); ?></span>
+			                <span><?php echo h($term['term_text']); ?> <span class="required-mark" aria-hidden="true">*</span></span>
 		              </label>
 		            <?php endforeach; ?>
-		            <a class="terms-link" href="terms.php" target="_blank" rel="noopener">View full terms and conditions</a>
+		            <a class="terms-link" href="<?php echo h(app_url('terms.php', '')); ?>" target="_blank" rel="noopener">View full terms and conditions</a>
 		          </div>
 		        </div>
 
@@ -377,7 +405,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
     try {
       const savedFields = JSON.parse(savedForm);
       savedFields.forEach(({ name, value, checked }) => {
-        if (name === 'event_date' || name === 'event_date_visible') return;
+        if (name === 'event_date' || name === 'event_date_visible' || name === 'customer_token') return;
         const field = enquiryForm.elements.namedItem(name);
         if (!field || field instanceof RadioNodeList) return;
         if (field.type === 'checkbox' || field.type === 'radio') field.checked = checked;
@@ -389,7 +417,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
     sessionStorage.removeItem('ananthaEnquiryForm');
   }
   const saveEnquiryBeforeMonthChange = () => {
-    const fields = Array.from(enquiryForm.elements).filter(field => field.name && field.name !== 'event_date' && field.name !== 'event_date_visible');
+    const fields = Array.from(enquiryForm.elements).filter(field => field.name && field.name !== 'event_date' && field.name !== 'event_date_visible' && field.name !== 'customer_token');
     sessionStorage.setItem('ananthaEnquiryForm', JSON.stringify(fields.map(field => ({ name: field.name, value: field.value, checked: field.checked }))));
   };
   const clearSelectedDate = (message = 'Select an available date to continue', showWarning = false) => {
@@ -559,6 +587,14 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 			  if (phoneInput && whatsappInput && emailInput && contactWarning && whatsappWarning && emailWarning) {
 			    let contactCheckTimer = 0;
 			    let contactCheckRun = 0;
+                const returningPanel=document.getElementById('returningCustomer');
+                const returningReference=document.getElementById('returningReference');
+                const returningError=document.getElementById('returningError');
+                const returningStatus=document.getElementById('returningStatus');
+                const loadCustomerButton=document.getElementById('loadCustomerDetails');
+                let customerLookupRun=0;
+                let verifiedPhone='';
+                let loadedFields=new Map();
 			    const setFieldWarning = (element, input, message = '') => {
 			      element.textContent = message;
 			      element.classList.toggle('show', Boolean(message));
@@ -570,6 +606,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 			      setFieldWarning(emailWarning, emailInput, fields.email || '');
 			    };
 			    const checkDuplicateContact = async () => {
+		      const run = ++contactCheckRun;
 		      const phone = phoneInput.value.trim();
 		      const whatsapp = whatsappInput.value.trim();
 			      const email = emailInput.value.trim();
@@ -577,19 +614,20 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 			        setContactWarnings();
 			        return;
 			      }
-		      const run = ++contactCheckRun;
 		      const params = new URLSearchParams({
 		        phone,
 		        whatsapp_number: whatsapp,
 		        email
 		      });
 		      try {
-		        const response = await fetch('api/contact-check.php?' + params.toString(), {
+		        const response = await fetch('<?php echo app_url('api/contact-check.php', ''); ?>?' + params.toString(), {
 		          headers: { 'X-Requested-With': 'fetch' }
 		        });
 			        const data = await response.json();
 			        if (run !== contactCheckRun) return;
 			        setContactWarnings(data.fields || {});
+                        if(data.fields?.phone && /^\d{10}$/.test(phone))returningPanel.open=true;
+                        if(data.returning_verified && verifiedPhone!==phone)loadCustomerDetails();
 			      } catch (error) {
 			        if (run === contactCheckRun) setContactWarnings();
 			      }
@@ -602,6 +640,65 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 		    whatsappInput.addEventListener('input', scheduleContactCheck);
 		    emailInput.addEventListener('input', scheduleContactCheck);
 		    emailInput.addEventListener('change', scheduleContactCheck);
+                const showLookupError=message=>{
+                    returningError.textContent=message;
+                    returningError.hidden=!message;
+                    returningReference.setAttribute('aria-invalid',message?'true':'false');
+                };
+                const loadCustomerDetails=async()=>{
+                    const phone=phoneInput.value.trim();
+                    const reference=returningReference.value.trim();
+                    const run=++customerLookupRun;
+                    returningStatus.textContent='';showLookupError('');
+                    if(!/^\d{10}$/.test(phone)){
+                        showLookupError('Please enter your 10-digit mobile number before loading your details.');phoneInput.focus();return;
+                    }
+                    loadCustomerButton.disabled=true;loadCustomerButton.textContent='Checking details...';
+                    try{
+                        const response=await fetch('<?php echo app_url('api/customer-lookup.php', ''); ?>',{
+                            method:'POST',credentials:'same-origin',cache:'no-store',
+                            headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
+                            body:new URLSearchParams({phone,reference,csrf_token:enquiryForm.elements.customer_token.value})
+                        });
+                        const data=await response.json();
+                        if(run!==customerLookupRun || phoneInput.value.trim()!==phone)return;
+                        if(!response.ok || !data.ok)throw new Error(data.error || 'Your details could not be loaded. Please try again.');
+                        if(data.verification_required){showLookupError('Please enter your previous booking reference to verify and load your details.');returningReference.focus();return;}
+                        const customer=data.customer;
+                        const mapping={name:'client_name',whatsapp_number:'whatsapp_number',email:'email',pin_code:'pin_code',area_from:'area_from',city_district:'city_district',client_state:'client_state'};
+                        verifiedPhone=phone;loadedFields=new Map();
+                        setContactWarnings({});
+                        // Keep the saved address instead of replacing it with a PIN lookup response.
+                        pinLookupRequest++;lastPinLookup=String(customer.pin_code || '');
+                        for(const [name,key] of Object.entries(mapping)){
+                            const field=enquiryForm.elements.namedItem(name);
+                            field.value=String(customer[key] || '');loadedFields.set(name,field.value);
+                        }
+                        sameAsMobile.checked=whatsappInput.value===phone;
+                        for(const name of Object.keys(mapping))enquiryForm.elements.namedItem(name).dispatchEvent(new Event('input',{bubbles:true}));
+                        returningReference.value='';returningPanel.open=true;
+                        returningStatus.textContent='Your contact details are loaded. Please enter the details for your new event.';
+                        pinHint.textContent='Address loaded from your previous booking. You can update it if needed.';
+                        scheduleContactCheck();
+                    }catch(error){if(run===customerLookupRun)showLookupError(error.message || 'Your details could not be loaded. Please try again.');}
+                    finally{if(run===customerLookupRun){loadCustomerButton.disabled=false;loadCustomerButton.textContent='Load my details';}}
+                };
+                loadCustomerButton.addEventListener('click',loadCustomerDetails);
+                returningReference.addEventListener('input',()=>showLookupError(''));
+                returningReference.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();loadCustomerDetails();}});
+                phoneInput.addEventListener('input',()=>{
+                    customerLookupRun++;contactCheckRun++;
+                    loadCustomerButton.disabled=false;loadCustomerButton.textContent='Load my details';
+                    showLookupError('');returningStatus.textContent='';
+                    if(verifiedPhone && verifiedPhone!==phoneInput.value.trim()){
+                        verifiedPhone='';
+                        for(const [name,value] of loadedFields){
+                            const field=enquiryForm.elements.namedItem(name);
+                            if(field.value===value){field.value='';field.dispatchEvent(new Event('input',{bubbles:true}));}
+                        }
+                        loadedFields.clear();
+                    }
+                });
 		    scheduleContactCheck();
 		  }
 		  const renderAreaOptions = (areas) => {
@@ -626,7 +723,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;transition
 	    const requestId = ++pinLookupRequest;
 	    pinHint.textContent = 'Fetching area details...';
 	    try {
-		      const response = await fetch('api/pincode.php?pin=' + encodeURIComponent(pin), {
+		      const response = await fetch('<?php echo app_url('api/pincode.php', ''); ?>?pin=' + encodeURIComponent(pin), {
 		        headers: { Accept: 'application/json' },
 		        cache: 'no-store'
 		      });

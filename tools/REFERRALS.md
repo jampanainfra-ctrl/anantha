@@ -1,6 +1,6 @@
 # Referral administration
 
-Open `admin/referrals.php` after signing in, or choose **Referrals & Logs** in the sidebar.
+Open `/ceoadmin/referrals/` after signing in, or choose **Referrals & Logs** in the sidebar.
 
 - Set **Uses allowed per code**. The default is 5. Tick **Apply usage limit to current codes too** to change current limits; otherwise the limit applies to new/replacement codes.
 - Set the validity period in days; 0 means no expiry. Existing expiry dates do not change. An admin-issued replacement starts a fresh validity period.

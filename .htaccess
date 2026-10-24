@@ -1,0 +1,48 @@
+Options -MultiViews
+DirectoryIndex index.php
+RewriteEngine On
+
+# Keep application internals, credentials and setup files off the public web.
+RewriteRule "(^|/)\.(?!well-known(?:/|$))" - [F,L]
+RewriteRule ^(?:includes|tools|vendor|storage)(?:/|$) - [F,L]
+<FilesMatch "(?i)^(?:database\.sql|composer\.(?:json|lock))$">
+Require all denied
+</FilesMatch>
+
+# Discover the URL prefix so redirects work in a subfolder or at the domain root.
+RewriteCond %{REQUEST_URI}::$1 ^(/.*?)(.*)::\2$
+RewriteRule ^(.*)$ - [E=ANANTHA_BASE:%1]
+
+# Redirect legacy PHP URLs. 308 preserves POST bodies and query strings.
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^admin/(?:login|index)\.php$ %{ENV:ANANTHA_BASE}ceoadmin/ [R=308,L]
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^admin/(actions|blog-images|booking-form|bookings|dashboard|email|forgot-password|reset-password|gallery|logout|packages|payments|rate-card|referrals|reviews|terms)\.php$ %{ENV:ANANTHA_BASE}ceoadmin/$1/ [R=308,L]
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^gallery\.php$ %{ENV:ANANTHA_BASE}galary/ [R=308,L]
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^index\.php$ %{ENV:ANANTHA_BASE} [R=308,L]
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^api/index\.php$ %{ENV:ANANTHA_BASE}api/ [R=308,L]
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^api/(availability|bookings|contact-check|customer-lookup|client-document|gallery|payments|pincode|referral-lookup|reviews)\.php$ %{ENV:ANANTHA_BASE}api/$1/ [R=308,L]
+RewriteCond %{THE_REQUEST} "\s/+[^\s?]*\.php(?:[?\s])" [NC]
+RewriteRule ^(300-guest-event-venue|anniversary-venue-visakhapatnam|availability|birthday-party-venue-visakhapatnam|blogs|corporate-event-venue-visakhapatnam|engagement-venue-visakhapatnam|event-lawns-visakhapatnam|event-venue-kommadi|family-celebration-venue-visakhapatnam|function-hall-madhurawada|haldi-mehendi-venue-visakhapatnam|haldi-venue-visakhapatnam|mehendi-venue-visakhapatnam|outdoor-event-venue-visakhapatnam|party-venue-madhurawada|private-event-venue-visakhapatnam|reception-venue-visakhapatnam|review|rules|sangeet-venue-visakhapatnam|sitemap|terms|venue|venues-near-madhurawada|venues-near-rushikonda|wedding-lawns-madhurawada|wedding-venue-visakhapatnam)\.php$ %{ENV:ANANTHA_BASE}$1/ [R=308,L]
+
+# Canonical route aliases and trailing slashes.
+RewriteRule ^admin/?$ %{ENV:ANANTHA_BASE}ceoadmin/ [R=308,L]
+RewriteRule ^admin/(?:login|index)/?$ %{ENV:ANANTHA_BASE}ceoadmin/ [R=308,L]
+RewriteRule ^admin/(actions|blog-images|booking-form|bookings|dashboard|email|forgot-password|reset-password|gallery|logout|packages|payments|rate-card|referrals|reviews|terms)/?$ %{ENV:ANANTHA_BASE}ceoadmin/$1/ [R=308,L]
+RewriteRule ^ceoadmin/(?:login|index)(?:\.php|/)?$ %{ENV:ANANTHA_BASE}ceoadmin/ [R=308,L]
+RewriteRule ^gallery/?$ %{ENV:ANANTHA_BASE}galary/ [R=308,L]
+RewriteRule ^(ceoadmin|galary|300-guest-event-venue|anniversary-venue-visakhapatnam|availability|birthday-party-venue-visakhapatnam|blogs|corporate-event-venue-visakhapatnam|engagement-venue-visakhapatnam|event-lawns-visakhapatnam|event-venue-kommadi|family-celebration-venue-visakhapatnam|function-hall-madhurawada|haldi-mehendi-venue-visakhapatnam|haldi-venue-visakhapatnam|mehendi-venue-visakhapatnam|outdoor-event-venue-visakhapatnam|party-venue-madhurawada|private-event-venue-visakhapatnam|reception-venue-visakhapatnam|review|rules|sangeet-venue-visakhapatnam|sitemap|terms|venue|venues-near-madhurawada|venues-near-rushikonda|wedding-lawns-madhurawada|wedding-venue-visakhapatnam)$ %{ENV:ANANTHA_BASE}$1/ [R=308,L]
+RewriteRule ^ceoadmin/(actions|blog-images|booking-form|bookings|dashboard|email|forgot-password|reset-password|gallery|logout|packages|payments|rate-card|referrals|reviews|terms)$ %{ENV:ANANTHA_BASE}ceoadmin/$1/ [R=308,L]
+RewriteRule ^api/(availability|bookings|contact-check|customer-lookup|client-document|gallery|payments|pincode|referral-lookup|reviews)$ %{ENV:ANANTHA_BASE}api/$1/ [R=308,L]
+
+# Serve clean routes without exposing PHP filenames.
+RewriteRule ^ceoadmin/$ admin/login.php [END]
+RewriteRule ^ceoadmin/(actions|blog-images|booking-form|bookings|dashboard|email|forgot-password|reset-password|gallery|logout|packages|payments|rate-card|referrals|reviews|terms)/$ admin/$1.php [END]
+RewriteRule ^galary/$ gallery.php [END]
+RewriteRule ^api/$ api/index.php [END]
+RewriteRule ^api/(availability|bookings|contact-check|customer-lookup|client-document|gallery|payments|pincode|referral-lookup|reviews)/$ api/$1.php [END]
+RewriteRule ^(300-guest-event-venue|anniversary-venue-visakhapatnam|availability|birthday-party-venue-visakhapatnam|blogs|corporate-event-venue-visakhapatnam|engagement-venue-visakhapatnam|event-lawns-visakhapatnam|event-venue-kommadi|family-celebration-venue-visakhapatnam|function-hall-madhurawada|haldi-mehendi-venue-visakhapatnam|haldi-venue-visakhapatnam|mehendi-venue-visakhapatnam|outdoor-event-venue-visakhapatnam|party-venue-madhurawada|private-event-venue-visakhapatnam|reception-venue-visakhapatnam|review|rules|sangeet-venue-visakhapatnam|sitemap|terms|venue|venues-near-madhurawada|venues-near-rushikonda|wedding-lawns-madhurawada|wedding-venue-visakhapatnam)/$ $1.php [END]
